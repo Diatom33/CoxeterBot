@@ -1,0 +1,2 @@
+# CoxeterBot
+Python Discord bot 
