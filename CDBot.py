@@ -3,6 +3,8 @@ from discord.ext import commands
 import sys
 import logging
 import datetime
+from PIL import Image, ImageDraw
+import os
 
 invite_link = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
 token = ""
@@ -58,8 +60,13 @@ async def invite(ctx):
     a_logger.info("invite sent")
 
 @client.command()
-async def cd(ctx, cd):
+async def cd(ctx, *, cd = "x"):
     a_logger.info(f"cd: {cd}")
-    await ctx.send(f"*Somebody* hasn't made the code yet, so here's your cd: {cd}")
+    #Image making info here
+    img = Image.new('RGB', (60, 30), color = 'red')
+    #
+    img.save("temp.png")
+    await ctx.send(file=discord.File("temp.png"))
+    os.remove("temp.png")
 
 client.run(token)
