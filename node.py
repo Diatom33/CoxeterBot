@@ -1,4 +1,4 @@
-#file -- node.py --
+#Nodes in a CD.
 class Node:
     #Class constructor.
     def __init__(self, value):
@@ -19,7 +19,7 @@ class Node:
         Node.__comp = []        
         self.__component()
         
-        return Node._comp
+        return Node.__comp
         
     #Auxiliary function for component.
     def __component(self):
@@ -29,15 +29,20 @@ class Node:
         for node in self.neighbors:
             if not node.visited:
                 node.__component()
-                
+
+#The CD as a graph.
 class Graph:
     #Class constructor.
     def __init__(self, array):
         self.array = array
         self.idx = 0
+        
+    #Class iterator.
+    def __iter__(self):
+        self.idx = 0
         return self
         
-    #Iterator.
+    #Next iterator method.
     def __next__(self):
         if self.idx < len(self.array):
             x = self.array[self.idx]
