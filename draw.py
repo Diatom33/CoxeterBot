@@ -31,12 +31,14 @@ class Draw:
         #Chooses the fill color.
         if node.value == 's':
             nodeFill = (255, 255, 255)
+            radius = RING_RADIUS
         else:
             nodeFill = (0, 0, 0)
+            radius = NODE_RADIUS
         
         #Draws the node.
         self.draw.ellipse( \
-            [x - NODE_RADIUS, y - NODE_RADIUS, x + NODE_RADIUS, y + NODE_RADIUS], \
+            [x - radius, y - radius, x + radius, y + radius], \
             fill = nodeFill, \
             outline = (0, 0, 0), \
             width = 1
