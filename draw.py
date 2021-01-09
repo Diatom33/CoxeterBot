@@ -19,11 +19,13 @@ class Draw:
             self.add(component)
 
     # Adds a new component to the diagram.
-    # TODO
+    # Currently, just puts everything in a straight line.
+    # TODO: make this draw the trees prettily.
     def add(self, component):
         for node in component:
             self.addNode(node, self.x, self.y)
             self.x += 20
+        
         self.x += 20
 
     # Adds a node in a particular position.

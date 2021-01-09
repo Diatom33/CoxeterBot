@@ -21,10 +21,6 @@ class Node:
     def component(self):
         Node.__comp = []
         self.__component()
-
-        # Resets visited attribute.
-        for node in Node.__comp:
-            node.visited = False
         
         return Node.__comp
 
@@ -67,4 +63,9 @@ class Graph:
             if not node.visited:
                 components.append(node.component())
 
+        # Resets visited attribute.
+        for component in components:
+            for node in component:
+                node.visited = False
+            
         return components
