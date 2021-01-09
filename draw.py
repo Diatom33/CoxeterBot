@@ -10,14 +10,14 @@ class Draw:
     # Class constructor.
     def __init__(self, graph):
         self.x = 20
-        self.y = 20        
-            
+        self.y = 20
+
         self.image = Image.new('RGB', size = (100, 50), color = (255, 255, 255))
         self.draw = ImageDraw.Draw(self.image)
-        
+
         for component in graph.components():
             self.add(component)
-    
+
     # Adds a new component to the diagram.
     # TODO
     def add(self, component):
@@ -25,7 +25,7 @@ class Draw:
             self.addNode(node, self.x, self.y)
             self.x += 20
         self.x += 20
-        
+
     # Adds a node in a particular position.
     def addNode(self, node, x, y):
         # Chooses the fill color.
@@ -35,7 +35,7 @@ class Draw:
         else:
             nodeFill = (0, 0, 0)
             radius = NODE_RADIUS
-        
+
         # Draws the node.
         self.draw.ellipse( \
             [x - radius, y - radius, x + radius, y + radius], \
@@ -43,7 +43,7 @@ class Draw:
             outline = (0, 0, 0), \
             width = 1
         )
-        
+
         # Draws the ring.
         if node.value == 'x':
             self.draw.arc( \
@@ -53,7 +53,7 @@ class Draw:
                 fill = (0, 0, 0), \
                 width = 1 \
             )
-        
+
     # Shows the graph.
     def show(self):
         self.image.show()

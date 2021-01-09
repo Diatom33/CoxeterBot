@@ -1,4 +1,4 @@
-from node import CDToGraph
-from draw import Draw 
+from cd import CD
+from draw import Draw
 
-Draw(CDToGraph("x3o3s")).show()
+Draw(CD("x4x3x4x").toGraph()).show()
