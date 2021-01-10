@@ -94,7 +94,8 @@ class Draw:
                 self.edges.append({
                     0: neighbor.ID,
                     1: node.ID,
-                    "label": node.edgeLabels[i]
+                    "label": node.edgeLabels[i],
+                    "drawingMode": drawingMode
                 })
 
             i += 1
@@ -151,7 +152,8 @@ class Draw:
 
             # Text coordinates.
             textXy = list(map(lambda a, b: (a + b) / 2, edgeXy[0], edgeXy[1]))
-            textXy[1] += TEXT_DISTANCE
+            if edge['drawingMode'] == 'line':
+                textXy[1] += TEXT_DISTANCE
 
             # Draws edge.
             self.draw.line(

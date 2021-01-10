@@ -9,8 +9,11 @@ class CDError(Exception):
 
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
+    # Matches every possible node label.
     nodeLabels = "[oxsqfvhkuwFe]"
-    edgeLabels = "[0-9]|[∞Ø/]"
+
+    # Matches either a fraction, or a single number, or a special symbol.
+    edgeLabels = "([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[∞Ø]"
 
     def __init__(self, string):
         # The index of the CD at which we're reading.
@@ -20,22 +23,21 @@ class CD:
         self.string = string.translate({45: None})
 
     # Reads a number from a given position.
-    # Returns it as a string.
+    # Returns whether it succeeded.
     def readNumber(self):
-        number = ""
-        char = self.string[self.index]
+        match = re.search(CD.edgeLabels, self.string[self.index:])
+        if match is None:
+            return False
 
-        while re.findall(CD.edgeLabels, char):
-            number += char
-            self.index += 1
+        span = match.span()
 
-            if self.index < len(self.string):
-                char = self.string[self.index]
-            else:
-                self.error("String index out of range while reading number.")
+        if span[0] != 0:
+            return False
 
-        self.index -= 1
-        return number
+        self.index += span[1] - span[0] - 1
+        self.number = match.group()
+
+        return True
 
     # Converts a textual Coxeter Diagram to a graph.
     def toGraph(self):
@@ -74,11 +76,11 @@ class CD:
                 linkNodes = True
 
             # Edge values
-            elif re.findall(CD.edgeLabels, cd[self.index]):
+            elif self.readNumber():
                 if prevNode is None:
                     self.error("Node expected.")
 
-                prevEdge = self.readNumber()
+                prevEdge = self.number
 
             # Node values
             elif re.findall(CD.nodeLabels, cd[self.index]):
@@ -93,7 +95,7 @@ class CD:
 
             # No Matches
             else:
-                self.error("Symbol not recognized.")
+                self.error("Node symbol not recognized.")
 
             # Links two nodes if necessary, just updates prevNode otherwise.
             if linkNodes:
