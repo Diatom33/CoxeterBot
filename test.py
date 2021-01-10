@@ -1,4 +1,4 @@
 from cd import CD
 from draw import Draw
 
-Draw(CD("x3x").toGraph()).show()
+Draw(CD("x3xx3x s3s").toGraph()).show()

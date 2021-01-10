@@ -1,17 +1,29 @@
 from PIL import Image, ImageDraw
 from node import Node, Graph
+import math
 
 # Constants:
 NODE_RADIUS = 3
 RING_RADIUS = 6
+PADDING = 10
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
 
 # Draws a graph.
 class Draw:
     # Class constructor.
     def __init__(self, graph):
-        self.x = 20
-        self.y = 20
+        # Variables to see where the next node goes.
+        # Provisional, probably.
+        self.x, self.y = 0, 0
+
+        # The elements of the graph.
         self.nodes = []
+        self.edges = []
+        
+        # The bounding box of the graph.
+        self.minX, self.minY, self.maxX, self.maxY = math.inf, math.inf, -math.inf, -math.inf
 
         for component in graph.components():
             self.add(component)
@@ -33,44 +45,59 @@ class Draw:
             "x": coords[0],
             "y": coords[1]
         }
+        
+        self.updateBoundingBox(coords)
 
         self.nodes.append(newNode)
 
+    # Updates the bounding box of the nodes.
+    def updateBoundingBox(self, coords):
+        x, y = coords
+        
+        self.minX = min(self.minX, x)
+        self.maxX = max(self.maxX, x)
+        self.minY = min(self.minY, y)
+        self.maxY = max(self.maxY, y)
+
+    # Gets the size of the bounding box.
+    def size(self):
+        return (self.maxX - self.minX + 2 * PADDING, self.maxY - self.minY + 2 * PADDING)
+
     # Draws the graph.
     def draw(self):
-        image = Image.new('RGB', size = (100, 50), color = (255, 255, 255))
+        image = Image.new('RGB', size = self.size(), color = WHITE)
         draw = ImageDraw.Draw(image)
 
         for node in self.nodes:
             value = node['value']
-            x = node['x']
-            y = node['y']
+            x = node['x'] - self.minX + PADDING
+            y = node['y'] - self.minX + PADDING
 
             # Chooses the fill color.
             if value == 's':
-                nodeFill = (255, 255, 255)
+                nodeFill = WHITE
                 radius = RING_RADIUS
             else:
-                nodeFill = (0, 0, 0)
+                nodeFill = BLACK
                 radius = NODE_RADIUS
 
             # Draws the node.
 
-            draw.ellipse( \
-                [x - radius, y - radius, x + radius, y + radius], \
-                fill = nodeFill, \
-                outline = (0, 0, 0), \
+            draw.ellipse(
+                [x - radius, y - radius, x + radius, y + radius],
+                fill = nodeFill,
+                outline = BLACK,
                 width = 1
             )
 
             # Draws the ring.
             if value == 'x':
-                draw.arc( \
-                    [x - RING_RADIUS, y - RING_RADIUS, x + RING_RADIUS, y + RING_RADIUS], \
-                    start = 0, \
-                    end = 360, \
-                    fill = (0, 0, 0), \
-                    width = 1 \
+                draw.arc(
+                    [x - RING_RADIUS, y - RING_RADIUS, x + RING_RADIUS, y + RING_RADIUS],
+                    start = 0,
+                    end = 360,
+                    fill = BLACK,
+                    width = 1
                 )
 
         return image

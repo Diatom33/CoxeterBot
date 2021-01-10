@@ -34,20 +34,21 @@ class CD:
         nodes = [] # The nodes in the final graph.
         prevNode = None # Most recently read node.
         prevEdge = 0 # Most recently read edge label.
-
+        prevSpace = False # Does a space separate the last two nodes?
+        
         # Reads through string.
-        while self.index < len(cd):
+        while self.index < len(cd):            
             # Skips spaces.
             if cd[self.index] == " ":
                 pass
-
+                
             # Reads virtual node
             elif cd[self.index] == "*":
                 self.index += 1
                 nodeIndex = ord(cd[self.index]) - ord('a')
 
                 if nodeIndex < 0 or nodeIndex >= 26:
-                    raise ValueError("Virtual node at index " + str(self.index) + "not a lowercase letter.")
+                    self.error("Virtual node at index {str(self.index} not a lowercase letter.")
 
                 if prevNode is None:
                     prevNode = nodes[nodeIndex]
@@ -63,16 +64,24 @@ class CD:
                 newNode = Node(cd[self.index])
                 nodes.append(newNode)
 
-                if prevNode is not None and prevEdge is not None:
-                    prevNode.linkTo(newNode, prevEdge)
+                if prevNode is not None:
+                    if prevEdge is None:
+                        if not prevSpace:
+                            self.error("Two nodes can't be adjacent.")
+                    else:
+                        prevNode.linkTo(newNode, prevEdge)
 
                 prevNode = newNode
                 prevEdge = None
 
             # No Matches
             else:
-                raise ValueError("Diagram parsing failed at index " + str(self.index) + ".")
+                self.error()
 
+            prevSpace = (cd[self.index] == " ")
             self.index += 1
 
         return Graph(nodes)
+        
+    def error(self, text = ""):
+        raise ValueError(f"Diagram parsing failed at index {str(self.index)}. {text}\n")

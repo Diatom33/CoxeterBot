@@ -12,10 +12,11 @@ class Node:
 
     # Links two nodes together.
     def linkTo(self, node, label):
-        self.neighbors.append(node)
-        self.edgeLabels.append(label)
-        node.neighbors.append(self)
-        node.edgeLabels.append(label)
+        if label is not "2":
+            self.neighbors.append(node)
+            self.edgeLabels.append(label)
+            node.neighbors.append(self)
+            node.edgeLabels.append(label)
 
     # Gets the connected component of a node.
     def component(self):
@@ -59,6 +60,7 @@ class Graph:
     def components(self):
         components = []
 
+        # Puts the connected components in an array.
         for node in self:
             if not node.visited:
                 components.append(node.component())
