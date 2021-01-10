@@ -21,7 +21,7 @@ class Draw:
         # The elements of the graph.
         self.nodes = []
         self.edges = []
-        
+
         # The bounding box of the graph.
         self.minX, self.minY, self.maxX, self.maxY = math.inf, math.inf, -math.inf, -math.inf
 
@@ -45,7 +45,7 @@ class Draw:
             "x": coords[0],
             "y": coords[1]
         }
-        
+
         self.updateBoundingBox(coords)
 
         self.nodes.append(newNode)
@@ -53,7 +53,7 @@ class Draw:
     # Updates the bounding box of the nodes.
     def updateBoundingBox(self, coords):
         x, y = coords
-        
+
         self.minX = min(self.minX, x)
         self.maxX = max(self.maxX, x)
         self.minY = min(self.minY, y)

@@ -35,13 +35,13 @@ class CD:
         prevNode = None # Most recently read node.
         prevEdge = 0 # Most recently read edge label.
         prevSpace = False # Does a space separate the last two nodes?
-        
+
         # Reads through string.
-        while self.index < len(cd):            
+        while self.index < len(cd):
             # Skips spaces.
             if cd[self.index] == " ":
                 pass
-                
+
             # Reads virtual node
             elif cd[self.index] == "*":
                 self.index += 1
@@ -82,6 +82,9 @@ class CD:
             self.index += 1
 
         return Graph(nodes)
-        
+
     def error(self, text = ""):
-        raise ValueError(f"Diagram parsing failed at index {str(self.index)}. {text}\n")
+        if text != "":
+            text = ' ' + text
+        
+        raise ValueError(f"Diagram parsing failed at index {str(self.index)}.{text}")
