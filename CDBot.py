@@ -10,7 +10,7 @@ from cd import CD
 from draw import Draw
 
 invite_link = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
-token = ""
+token = open("token.txt", "r").read()
 prefix = '?'
 
 client = commands.Bot(command_prefix = prefix)
@@ -49,6 +49,14 @@ async def ping(ctx):
 async def invite(ctx):
     a_logger.info("COMMAND: invite")
     await ctx.send(invite_link)
+    
+# Changes the bot prefix.
+@commands.has_permissions(administrator = True)
+@client.command()
+async def prefix(ctx, *newPrefix):
+    newPrefix = ' '.join(newPrefix)
+    a_logger.info(f"COMMAND: prefix {newPrefix}")
+    prefix = newPrefix
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()

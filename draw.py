@@ -36,7 +36,7 @@ class Draw:
             self.addNode(node, (self.x, self.y))
             self.x += 20
 
-        self.x += 20
+        self.x += 10
 
     # Adds a node in a particular position.
     def addNode(self, node, coords):

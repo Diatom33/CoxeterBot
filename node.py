@@ -12,7 +12,7 @@ class Node:
 
     # Links two nodes together.
     def linkTo(self, node, label):
-        if label is not "2":
+        if label != "2":
             self.neighbors.append(node)
             self.edgeLabels.append(label)
             node.neighbors.append(self)
