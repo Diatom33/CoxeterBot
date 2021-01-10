@@ -1,0 +1,1 @@
+Uses Computer Modern by Donald Ervin Knuth, published under the SIL Open Font License.

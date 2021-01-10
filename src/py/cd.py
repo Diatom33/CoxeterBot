@@ -1,9 +1,16 @@
 import re
 from node import Node, Graph
 
+MAX_LEN = 100
+
+# Custom class, to distinguish between caught and uncaught errors.
+class CDError(Exception):
+    pass
+
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
     nodeLabels = "[oxsqfvhkuwFe]"
+    edgeLabels = "[0-9]|[∞Ø/]"
 
     def __init__(self, string):
         # The index of the CD at which we're reading.
@@ -18,7 +25,7 @@ class CD:
         number = ""
         char = self.string[self.index]
 
-        while char.isdigit() or char == "/":
+        while re.findall(CD.edgeLabels, char):
             number += char
             self.index += 1
 
@@ -58,18 +65,16 @@ class CD:
 
                 # Checks that the node index is valid.
                 if nodeIndex < 0 or nodeIndex >= 26:
-                    self.error(f"Virtual node at index {str(self.index)} not a lowercase letter.")
+                    self.error("Virtual node not a lowercase letter.")
                 if nodeIndex >= len(nodes):
                     self.error("Node index out of range.")
 
-                # Either declares prevNode or connects prevNode to this node.
-                if prevNode is None:
-                    prevNode = nodes[nodeIndex]
-                else:
-                    prevNode.linkTo(nodes[nodeIndex], prevEdge)
+                # Toggles the flag to link stuff.
+                newNode = nodes[nodeIndex]
+                linkNodes = True
 
             # Edge values
-            elif cd[self.index].isdigit() or cd[self.index] == "/":
+            elif re.findall(CD.edgeLabels, cd[self.index]):
                 if prevNode is None:
                     self.error("Node expected.")
 
@@ -77,22 +82,31 @@ class CD:
 
             # Node values
             elif re.findall(CD.nodeLabels, cd[self.index]):
+                if len(nodes) > MAX_LEN:
+                    self.error("Diagram too big.")
+
                 newNode = Node(cd[self.index])
                 nodes.append(newNode)
 
-                if prevNode is not None:
-                    if prevEdge is None:
-                        if not prevSpace:
-                            self.error("Two nodes can't be adjacent.")
-                    else:
-                        prevNode.linkTo(newNode, prevEdge)
-
-                prevNode = newNode
-                prevEdge = None
+                # Toggles the flag to link stuff.
+                linkNodes = True
 
             # No Matches
             else:
                 self.error("Symbol not recognized.")
+
+            # Links two nodes if necessary, just updates prevNode otherwise.
+            if linkNodes:
+                if prevNode is not None:
+                    if prevEdge is None:
+                        if not prevSpace:
+                            self.error("Two nodes can't be adjacent.")
+                    elif prevNode is not newNode:
+                        prevNode.linkTo(newNode, prevEdge)
+
+                linkNodes = False
+                prevNode = newNode
+                prevEdge = None
 
             prevSpace = (cd[self.index] == " ")
             self.index += 1
@@ -100,4 +114,4 @@ class CD:
         return Graph(nodes)
 
     def error(self, text):
-        raise ValueError(f"Diagram parsing failed at index {str(self.index)}. {text}")
+        raise CDError(f"Diagram parsing failed at index {str(self.index)}. {text}")
