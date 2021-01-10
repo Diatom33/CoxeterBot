@@ -9,11 +9,11 @@ import re
 from cd import CD
 from draw import Draw
 
-invite_link = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
-token = open("token.txt", "r").read()
-prefix = '?'
+INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
+TOKEN = open("TOKEN.txt", "r").read()
+PREFIX = '?'
 
-client = commands.Bot(command_prefix = prefix)
+client = commands.Bot(command_prefix = PREFIX)
 
 # Runs on client ready.
 @client.event
@@ -22,7 +22,7 @@ async def on_ready():
         status = discord.Status.online,
         activity = discord.Activity(
             type = discord.ActivityType.watching,
-            name = prefix + "help"
+            name = PREFIX + "help"
         )
     )
 
@@ -48,15 +48,20 @@ async def ping(ctx):
 @client.command()
 async def invite(ctx):
     a_logger.info("COMMAND: invite")
-    await ctx.send(invite_link)
-    
-# Changes the bot prefix.
+    await ctx.send(INVITE_LINK)
+
+# Changes the bot PREFIX.
 @commands.has_permissions(administrator = True)
 @client.command()
 async def prefix(ctx, *newPrefix):
     newPrefix = ' '.join(newPrefix)
     a_logger.info(f"COMMAND: prefix {newPrefix}")
-    prefix = newPrefix
+
+    PREFIX = newPrefix
+    client.command_prefix = PREFIX
+
+    a_logger.info(f"INFO: prefix changed to {newPrefix}")
+    await ctx.send(f"Prefix changed to {PREFIX}")
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
@@ -65,7 +70,7 @@ async def cd(ctx, *cd):
     a_logger.info(f"COMMAND: cd {cd}.")
 
     if cd == '':
-        await ctx.send(f"Usage: `{prefix}cd x4o3o`. Run `{prefix}help cd` for details.")    
+        await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
     elif cd == 'c': # Dumb easter egg.
         await ctx.send(f"https://www.cdc.gov/")
     else:
@@ -100,11 +105,11 @@ helpEmbed = discord.Embed(
 )
 
 helpEmbed.set_author(name = "by Cirro, Diatom, & URL")
-helpEmbed.add_field(name = f"`{prefix}help`", value = "You said this.", inline = False)
-helpEmbed.add_field(name = f"`{prefix}cd [linearized diagram]`",
+helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
+helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
     value = ("Renders a Coxeter–Dynkin Diagram, based on [Richard Klitzing's notation]"
     "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm).\n"
     "URL and/or Cirro still have to code this."), inline = False)
 
 # Runs the bot.
-client.run(token)
+client.run(TOKEN)

@@ -86,5 +86,5 @@ class CD:
     def error(self, text = ""):
         if text != "":
             text = ' ' + text
-        
+
         raise ValueError(f"Diagram parsing failed at index {str(self.index)}.{text}")
