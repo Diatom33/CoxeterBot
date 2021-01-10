@@ -21,14 +21,14 @@ class Node:
     def component(self):
         Node.__comp = []
         self.__component()
-        
+
         return Node.__comp
 
     # Auxiliary function for component.
     def __component(self):
         self.visited = True
         Node.__comp.append(self)
-        
+
         # Performs DFS.
         for node in self.neighbors:
             if not node.visited:
@@ -67,5 +67,5 @@ class Graph:
         for component in components:
             for node in component:
                 node.visited = False
-            
+
         return components

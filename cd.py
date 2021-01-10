@@ -37,8 +37,12 @@ class CD:
 
         # Reads through string.
         while self.index < len(cd):
+            # Skips spaces.
+            if cd[self.index] == " ":
+                pass
+
             # Reads virtual node
-            if cd[self.index] == "*":
+            elif cd[self.index] == "*":
                 self.index += 1
                 nodeIndex = ord(cd[self.index]) - ord('a')
 
@@ -50,19 +54,20 @@ class CD:
                 else:
                     prevNode.linkTo(nodes[nodeIndex], prevEdge)
 
-            # Edge Values
+            # Edge values
             elif cd[self.index].isdigit() or cd[self.index] == "/":
                 prevEdge = self.readNumber()
 
-            # Node Values
+            # Node values
             elif re.findall(CD.nodeLabels, cd[self.index]):
                 newNode = Node(cd[self.index])
                 nodes.append(newNode)
-                
-                if prevNode:
+
+                if prevNode is not None and prevEdge is not None:
                     prevNode.linkTo(newNode, prevEdge)
-                
+
                 prevNode = newNode
+                prevEdge = None
 
             # No Matches
             else:
