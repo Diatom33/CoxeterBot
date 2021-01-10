@@ -38,7 +38,7 @@ async def cd(ctx, *cd):
 
     if cd == '':
         await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
-    elif cd == 'c': # Dumb easter egg.
+    elif cd == 'c': # Dumb easter eggs.
         await ctx.send("https://www.cdc.gov/")
     elif cd == 'play': # Another dumb easter egg.
         await ctx.send(":cd: :play_pause:")
