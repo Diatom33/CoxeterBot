@@ -73,7 +73,7 @@ async def help(ctx, *args):
     args = ' '.join(args)
 
     if args == '':
-        await ctx.send(embed = helpEmbed)
+        await ctx.send(embed = helpEmbed())
     elif args == 'cd':
         await ctx.send(embed = commandHelpEmbed(
             command = 'cd',
@@ -108,9 +108,10 @@ async def prefix(ctx, *newPrefix):
     newPrefix = ' '.join(newPrefix)
     a_logger.info(f"COMMAND: prefix {newPrefix}")
 
+    global PREFIX
     PREFIX = newPrefix
     client.command_prefix = PREFIX
-    open("PREFIX.TXT", "w").write(PREFIX)
+    open("../txt/PREFIX.TXT", "w").write(PREFIX)
 
     a_logger.info(f"INFO: prefix changed to {newPrefix}")
     await ctx.send(f"Prefix changed to {PREFIX}")
@@ -124,6 +125,24 @@ async def error(ctx, e, expected):
 
     a_logger.info(f"{expectedStr}ERROR: {str(e)}")
     await ctx.send(f"`{expectedStr}ERROR: {str(e)}`")
+
+def helpEmbed():
+    # Configures help embed.
+    helpEmbed = discord.Embed(
+        colour = discord.Colour.blue(),
+        title = "Coxeter Bot Help"
+    )
+
+    print(PREFIX)
+    helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
+    helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
+        value = (
+            "Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), "
+            "based on [Richard Klitzing's notation]"
+            "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm)."
+        ), inline = False)
+
+    return helpEmbed
 
 def commandHelpEmbed(command, shortExplanation, examples):
     embed = discord.Embed(
@@ -143,18 +162,6 @@ output_file_handler = logging.FileHandler("../../logs/log " +
 stdout_handler = logging.StreamHandler(sys.stdout)
 a_logger.addHandler(output_file_handler)
 a_logger.addHandler(stdout_handler)
-
-# Configures help embed.
-helpEmbed = discord.Embed(
-    colour = discord.Colour.blue(),
-    title = "Coxeter Bot Help"
-)
-
-helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
-helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
-    value = ("Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), based on [Richard Klitzing's notation]"
-    "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm).\n"
-    "URL and/or Cirro still have to code this."), inline = False)
 
 # Runs the bot.
 client.run(TOKEN)
