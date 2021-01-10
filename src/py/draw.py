@@ -52,14 +52,14 @@ class Draw:
 
         if drawingMode == 'polygon':
             n = len(component)
-            radius = round(NODE_SPACING / (2 * math.sin(math.pi / n)))
+            radius = NODE_SPACING / (2 * math.sin(math.pi / n))
             self.x += radius
 
             angle = math.pi / 2 + math.pi / n
             for node in component:
                 self.addNode(node, (
-                    round(self.x + radius * math.cos(angle)),
-                    round(self.y + radius * math.sin(angle))
+                    self.x + radius * math.cos(angle),
+                    self.y + radius * math.sin(angle)
                 ), drawingMode)
                 angle += 2 * math.pi / n
 
@@ -213,10 +213,15 @@ class Draw:
 
     # Draws text with a white border at some particular location.
     def __drawText(self, xy, text, textType):
+        xy = list(map(float, xy))
+
         if textType == 'node':
             font = NODE_FONT
             foreColor = 'white'
             backColor = 'black'
+
+            # Offset, seems necessary for some reason.
+            xy = list(map(lambda a, b: a + b, xy, (1, -1)))
         elif textType == 'edge':
             font = EDGE_FONT
             foreColor = 'black'
@@ -225,7 +230,7 @@ class Draw:
             self.error("Text type not recognized.")
 
         textSize = self.draw.textsize(text = text, font = font)
-        xy = list(map(lambda a, b: a - b / 2, xy, textSize))
+        xy = list(map(lambda a, b: round(a - b / 2), xy, textSize))
 
         self.draw.text(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
         self.draw.text(xy = (xy[0] + FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
