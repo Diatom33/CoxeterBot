@@ -6,7 +6,8 @@ import datetime
 from PIL import Image, ImageDraw
 import os
 import re
-from cd import CD, CDError
+from cd import CD
+from cdError import CDError
 from draw import Draw
 
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
@@ -39,11 +40,18 @@ async def cd(ctx, *cd):
         await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
     elif cd == 'c': # Dumb easter egg.
         await ctx.send("https://www.cdc.gov/")
+    elif cd == 'play': # Another dumb easter egg.
+        await ctx.send(":cd: :play_pause:")
+    elif cd == 'pause': # Another dumb easter egg.
+        await ctx.send(":cd: :pause_button:")
     else:
         try:
             temp = Draw(CD(cd).toGraph()).draw()
         except CDError as e:
-            await error(ctx, e)
+            await error(ctx, e, expected = True)
+            return
+        except Exception as e:
+            await error(ctx, e, expected = False)
             return
 
     temp.save("temp.png")
@@ -89,9 +97,14 @@ async def prefix(ctx, *newPrefix):
     await ctx.send(f"Prefix changed to {PREFIX}")
 
 # Logs an error and posts it.
-async def error(ctx, e):
-    a_logger.info(f"ERROR: {str(e)}")
-    await ctx.send(f"`ERROR: {str(e)}`")
+async def error(ctx, e, expected):
+    if expected:
+        expectedStr = ""
+    else:
+        expectedStr = "UNEXPECTED "
+
+    a_logger.info(f"{expectedStr}ERROR: {str(e)}")
+    await ctx.send(f"`{expectedStr}ERROR: {str(e)}`")
 
 # Configures logger.
 a_logger = logging.getLogger()

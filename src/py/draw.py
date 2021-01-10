@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 from node import Node, Graph
-from cd import CDError
+from cdError import CDError
 import math
 
 # Constants:
@@ -133,7 +133,10 @@ class Draw:
 
     # Gets the size of the bounding box.
     def size(self):
-        return (self.maxX - self.minX + 2 * PADDING, self.maxY - self.minY + 2 * PADDING)
+        return (
+            round(self.maxX - self.minX + 2 * PADDING),
+            round(self.maxY - self.minY + 2 * PADDING)
+        )
 
     # Draws the graph.
     def draw(self):
@@ -156,14 +159,10 @@ class Draw:
                 textXy[1] += TEXT_DISTANCE
 
             # Draws edge.
-            self.draw.line(
-                xy = edgeXy,
-                width = LINE_WIDTH,
-                fill = 'black'
-            )
+            self.__drawEdge(edgeXy, dotted = (label == "Ø"))
 
             # Draws label.
-            if label != "3":
+            if label != "3" and label != "Ø":
                 self.__drawText(textXy, label, textType = 'edge')
 
         # Draws each node.
@@ -192,6 +191,7 @@ class Draw:
 
         return self.image
 
+    # Draws a circle on the image.
     def __drawCircle(self, xy, radius, fill):
         x, y = xy
         self.draw.ellipse(
@@ -201,6 +201,7 @@ class Draw:
             width = NODE_BORDER_WIDTH
         )
 
+    # Draws a ring on the image.
     def __drawRing(self, xy, radius, fill):
         x, y = xy
         self.draw.arc(
@@ -210,6 +211,31 @@ class Draw:
             fill = 'black',
             width = RING_WIDTH
         )
+
+    # Draws a line segment on the image.
+    def __drawEdge(self, xy, dotted):
+        if not dotted:
+            self.draw.line(
+                xy = xy,
+                width = LINE_WIDTH,
+                fill = 'black'
+            )
+        else:
+            dashes = 5
+            delta = tuple(map(lambda x, y: (y - x) / (2 * dashes - 1), xy[0], xy[1]))
+            xy = list(xy)
+            xy[1] = tuple(map(lambda x, y: x + y, xy[0], delta))
+
+            for i in range(dashes):
+                self.draw.line(
+                    xy = tuple(xy),
+                    width = LINE_WIDTH,
+                    fill = 'black'
+                )
+
+                xy[0] = tuple(map(lambda x, y: x + 2 * y, xy[0], delta))
+                xy[1] = tuple(map(lambda x, y: x + 2 * y, xy[1], delta))
+
 
     # Draws text with a white border at some particular location.
     def __drawText(self, xy, text, textType):

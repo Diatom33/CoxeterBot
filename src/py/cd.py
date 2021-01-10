@@ -3,9 +3,7 @@ from node import Node, Graph
 
 MAX_LEN = 100
 
-# Custom class, to distinguish between caught and uncaught errors.
-class CDError(Exception):
-    pass
+from cdError import CDError
 
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
@@ -78,7 +76,7 @@ class CD:
             # Edge values
             elif self.readNumber():
                 if prevNode is None:
-                    self.error("Node expected.")
+                    self.error("Node expected before edge.")
 
                 prevEdge = self.number
 
@@ -97,15 +95,23 @@ class CD:
             else:
                 self.error("Node symbol not recognized.")
 
-            # Links two nodes if necessary, just updates prevNode otherwise.
+            # Links two nodes if necessary.
             if linkNodes:
+                # If there's no previous node, just updates prevNode.
                 if prevNode is not None:
+                    # If prevEdge is None, this means there's two nodes one after another.
                     if prevEdge is None:
+                        # Two consecutive nodes must be separated by a space.
                         if not prevSpace:
                             self.error("Two nodes can't be adjacent.")
-                    elif prevNode is not newNode:
-                        prevNode.linkTo(newNode, prevEdge)
+                    # If prevEdge is not None, tries to link the nodes.
+                    else:
+                        try:
+                            prevNode.linkTo(newNode, prevEdge)
+                        except CDError as e:
+                            self.error(str(e))
 
+                # Updates variables.
                 linkNodes = False
                 prevNode = newNode
                 prevEdge = None
@@ -113,7 +119,10 @@ class CD:
             prevSpace = (cd[self.index] == " ")
             self.index += 1
 
-        return Graph(nodes)
+        if prevEdge is None:
+            return Graph(nodes)
+        else:
+            self.error("Node expected before string end.")
 
     def error(self, text):
         raise CDError(f"Diagram parsing failed at index {str(self.index)}. {text}")

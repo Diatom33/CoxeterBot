@@ -1,5 +1,6 @@
 import re
 import math
+from cdError import CDError
 
 # Nodes in a CD.
 class Node:
@@ -18,6 +19,12 @@ class Node:
 
     # Links two nodes together.
     def linkTo(self, node, label):
+        if self is node:
+            raise CDError("Can't link node to self.")
+
+        if node in self.neighbors:
+            raise CDError("Can't link two nodes twice.")
+
         if label != "2":
             self.neighbors.append(node)
             self.edgeLabels.append(label)
