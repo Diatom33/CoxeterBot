@@ -15,6 +15,7 @@ TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
 
 client = commands.Bot(command_prefix = PREFIX)
+fileCount = 0
 
 # Runs on client ready.
 @client.event
@@ -54,18 +55,36 @@ async def cd(ctx, *cd):
             await error(ctx, e, expected = False)
             return
 
-    temp.save("temp.png")
-    a_logger.info(f"INFO: Created temp.png file.")
-    await ctx.send(file = discord.File("temp.png"))
-    os.remove("temp.png")
-    a_logger.info(f"INFO: Removed temp.png file.")
+    global fileCount
+    fileName = f"temp{fileCount}.png"
+    fileCount += 1
+
+    temp.save(fileName)
+    a_logger.info(f"INFO: Created {fileName} file.")
+    await ctx.send(file = discord.File(fileName))
+
+    os.remove(fileName)
+    a_logger.info(f"INFO: Removed {fileName} file.")
 
 # Shows a help screen with a command list.
 client.remove_command("help")
 @client.command(pass_context = True)
-async def help(ctx):
-    await ctx.send(embed = helpEmbed)
-    a_logger.info("COMMAND: help")
+async def help(ctx, *args):
+    args = ' '.join(args)
+
+    if args == '':
+        await ctx.send(embed = helpEmbed)
+    elif args == 'cd':
+        await ctx.send(embed = commandHelpEmbed(
+            command = 'cd',
+            shortExplanation = "Renders the [Coxeter–Dynkin](https://polytope.miraheze.org/wiki/Coxeter_diagram) diagram corresponding to a string.",
+            examples = (
+                f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
+                f"`{PREFIX}cd s3s4q3x`: A diagram with various node types.\n"
+                f"`{PREFIX}cd x3x3x3*a`: A diagram with loops."
+            )
+        ))
+    a_logger.info(f"COMMAND: help {args}")
 
 # Gets the bot invite link.
 @client.command()
@@ -106,6 +125,16 @@ async def error(ctx, e, expected):
     a_logger.info(f"{expectedStr}ERROR: {str(e)}")
     await ctx.send(f"`{expectedStr}ERROR: {str(e)}`")
 
+def commandHelpEmbed(command, shortExplanation, examples):
+    embed = discord.Embed(
+        colour = discord.Colour.blue(),
+        title = f"Command Help: {command}"
+    )
+
+    embed.add_field(name = "Explanation", value = shortExplanation, inline = True)
+    embed.add_field(name = "Examples", value = examples, inline = False)
+    return embed
+
 # Configures logger.
 a_logger = logging.getLogger()
 a_logger.setLevel(logging.INFO)
@@ -117,13 +146,13 @@ a_logger.addHandler(stdout_handler)
 
 # Configures help embed.
 helpEmbed = discord.Embed(
-    colour = discord.Colour.blue()
+    colour = discord.Colour.blue(),
+    title = "Coxeter Bot Help"
 )
 
-helpEmbed.set_author(name = "Coxeter Bot Help")
 helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
 helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
-    value = ("Renders a Coxeter–Dynkin Diagram, based on [Richard Klitzing's notation]"
+    value = ("Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), based on [Richard Klitzing's notation]"
     "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm).\n"
     "URL and/or Cirro still have to code this."), inline = False)
 

@@ -18,8 +18,14 @@ TEXT_DISTANCE = 20
 
 EDGE_FONT_SIZE = 24
 NODE_FONT_SIZE = 18
-EDGE_FONT = ImageFont.truetype("../ttf/cmunorm.ttf", EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
-NODE_FONT = ImageFont.truetype("../ttf/cmunorm.ttf", NODE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+HOLOSNUB_FONT_SIZE = 36
+
+FONT_NAME = "Lora-regular"
+
+EDGE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+NODE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", NODE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+HOLOSNUB_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", HOLOSNUB_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+
 FONT_OUTLINE = 2
 
 PADDING = 60
@@ -171,7 +177,7 @@ class Draw:
             xy = self.transformCoords(node['xy'])
 
             # Chooses the fill color.
-            if value == 's':
+            if value == 's' or value == '+':
                 nodeFill = 'white'
                 radius = RING_RADIUS
             else:
@@ -187,7 +193,12 @@ class Draw:
 
                 # Draws the mark.
                 if value != 'x':
-                    self.__drawText(xy = xy, text = value, textType = 'node')
+                    if value == '+':
+                        textType = 'holosnub'
+                    else:
+                        textType = 'node'
+
+                    self.__drawText(xy = xy, text = value, textType = textType)
 
         return self.image
 
@@ -241,6 +252,7 @@ class Draw:
     def __drawText(self, xy, text, textType):
         xy = list(map(float, xy))
 
+        # Configures text attributes.
         if textType == 'node':
             font = NODE_FONT
             foreColor = 'white'
@@ -248,6 +260,13 @@ class Draw:
 
             # Offset, seems necessary for some reason.
             xy = list(map(lambda a, b: a + b, xy, (1, -1)))
+        elif textType == 'holosnub':
+            font = HOLOSNUB_FONT
+            foreColor = 'black'
+            backColor = 'white'
+
+            # Offset, seems necessary for some reason.
+            xy = list(map(lambda a, b: a + b, xy, (0.5, -3)))
         elif textType == 'edge':
             font = EDGE_FONT
             foreColor = 'black'
@@ -255,13 +274,17 @@ class Draw:
         else:
             self.error("Text type not recognized.")
 
+        # Positions text correctly.
         textSize = self.draw.textsize(text = text, font = font)
         xy = list(map(lambda a, b: round(a - b / 2), xy, textSize))
 
+        # Draws border.
         self.draw.text(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
         self.draw.text(xy = (xy[0] + FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
         self.draw.text(xy = (xy[0], xy[1] - FONT_OUTLINE), text = text, fill = backColor, font = font)
         self.draw.text(xy = (xy[0], xy[1] + FONT_OUTLINE), text = text, fill = backColor, font = font)
+
+        # Overlays text.
         self.draw.text(xy = xy, text = text, fill = foreColor, font = font)
 
     # Shows the graph.

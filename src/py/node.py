@@ -8,7 +8,11 @@ class Node:
 
     # Class constructor.
     def __init__(self, value):
-        self.value = value
+        if value != 'ß':
+            self.value = value
+        else:
+            self.value = '+'
+
         self.neighbors = []
         self.edgeLabels = []
         self.visited = False

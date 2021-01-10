@@ -1,1 +1,1 @@
-Uses Computer Modern by Donald Ervin Knuth, published under the SIL Open Font License.
+Uses Lora by the Lora Project Authors, published under the SIL Open Font License 1.1.

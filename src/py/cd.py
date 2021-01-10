@@ -8,7 +8,7 @@ from cdError import CDError
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
     # Matches every possible node label.
-    nodeLabels = "[oxsqfvhkuwFe]"
+    nodeLabels = "[oxsßqfvhkuwFe]"
 
     # Matches either a fraction, or a single number, or a special symbol.
     edgeLabels = "([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[∞Ø]"
