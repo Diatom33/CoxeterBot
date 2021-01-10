@@ -11,7 +11,7 @@ from draw import Draw
 
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
 TOKEN = open("TOKEN.txt", "r").read()
-PREFIX = '?'
+PREFIX = open("PREFIX.txt", "r").read()
 
 client = commands.Bot(command_prefix = PREFIX)
 
@@ -27,6 +27,7 @@ async def on_ready():
     )
 
     a_logger.info("INFO: Bot is ready.")
+    a_logger.info(f"INFO: Prefix is {PREFIX}")
 
 # Shows a help screen with a command list.
 client.remove_command("help")
@@ -59,6 +60,7 @@ async def prefix(ctx, *newPrefix):
 
     PREFIX = newPrefix
     client.command_prefix = PREFIX
+    open("PREFIX.TXT", "w").write(PREFIX)
 
     a_logger.info(f"INFO: prefix changed to {newPrefix}")
     await ctx.send(f"Prefix changed to {PREFIX}")
