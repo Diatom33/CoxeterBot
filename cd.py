@@ -21,7 +21,11 @@ class CD:
         while char.isdigit() or char == "/":
             number += char
             self.index += 1
-            char = self.string[self.index]
+
+            if self.index < len(self.string):
+                char = self.string[self.index]
+            else:
+                self.error("String index out of range while reading number.")
 
         self.index -= 1
         return number
@@ -45,11 +49,20 @@ class CD:
             # Reads virtual node
             elif cd[self.index] == "*":
                 self.index += 1
-                nodeIndex = ord(cd[self.index]) - ord('a')
 
+                # Declares the node index.
+                if self.index < len(cd):
+                    nodeIndex = ord(cd[self.index]) - ord('a')
+                else:
+                    self.error("Lowercase letter expected.")
+
+                # Checks that the node index is valid.
                 if nodeIndex < 0 or nodeIndex >= 26:
-                    self.error("Virtual node at index {str(self.index} not a lowercase letter.")
+                    self.error(f"Virtual node at index {str(self.index)} not a lowercase letter.")
+                if nodeIndex >= len(nodes):
+                    self.error("Node index out of range.")
 
+                # Either declares prevNode or connects prevNode to this node.
                 if prevNode is None:
                     prevNode = nodes[nodeIndex]
                 else:
@@ -57,6 +70,9 @@ class CD:
 
             # Edge values
             elif cd[self.index].isdigit() or cd[self.index] == "/":
+                if prevNode is None:
+                    self.error("Node expected.")
+
                 prevEdge = self.readNumber()
 
             # Node values
@@ -76,15 +92,12 @@ class CD:
 
             # No Matches
             else:
-                self.error()
+                self.error("Symbol not recognized.")
 
             prevSpace = (cd[self.index] == " ")
             self.index += 1
 
         return Graph(nodes)
 
-    def error(self, text = ""):
-        if text != "":
-            text = ' ' + text
-
-        raise ValueError(f"Diagram parsing failed at index {str(self.index)}.{text}")
+    def error(self, text):
+        raise ValueError(f"Diagram parsing failed at index {str(self.index)}. {text}")

@@ -72,7 +72,7 @@ async def cd(ctx, *cd):
     if cd == '':
         await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
     elif cd == 'c': # Dumb easter egg.
-        await ctx.send(f"https://www.cdc.gov/")
+        await ctx.send("https://www.cdc.gov/")
     else:
         try:
             temp = Draw(CD(cd).toGraph()).draw()
@@ -81,8 +81,10 @@ async def cd(ctx, *cd):
             return
 
     temp.save("temp.png")
+    a_logger.info(f"INFO: Created temp.png file.")
     await ctx.send(file = discord.File("temp.png"))
     os.remove("temp.png")
+    a_logger.info(f"INFO: Removed temp.png file.")
 
 # Logs an error and posts it.
 async def error(ctx, e):
@@ -100,11 +102,10 @@ a_logger.addHandler(stdout_handler)
 
 # Configures help embed.
 helpEmbed = discord.Embed(
-    title = "Coxeter Bot Help",
     colour = discord.Colour.blue()
 )
 
-helpEmbed.set_author(name = "by Cirro, Diatom, & URL")
+helpEmbed.set_author(name = "Coxeter Bot Help")
 helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
 helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
     value = ("Renders a Coxeter–Dynkin Diagram, based on [Richard Klitzing's notation]"

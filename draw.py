@@ -7,9 +7,6 @@ NODE_RADIUS = 3
 RING_RADIUS = 6
 PADDING = 10
 
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-
 # Draws a graph.
 class Draw:
     # Class constructor.
@@ -65,7 +62,7 @@ class Draw:
 
     # Draws the graph.
     def draw(self):
-        image = Image.new('RGB', size = self.size(), color = WHITE)
+        image = Image.new('RGB', size = self.size(), color = 'white')
         draw = ImageDraw.Draw(image)
 
         for node in self.nodes:
@@ -75,10 +72,10 @@ class Draw:
 
             # Chooses the fill color.
             if value == 's':
-                nodeFill = WHITE
+                nodeFill = 'white'
                 radius = RING_RADIUS
             else:
-                nodeFill = BLACK
+                nodeFill = 'black'
                 radius = NODE_RADIUS
 
             # Draws the node.
@@ -86,7 +83,7 @@ class Draw:
             draw.ellipse(
                 [x - radius, y - radius, x + radius, y + radius],
                 fill = nodeFill,
-                outline = BLACK,
+                outline = 'black',
                 width = 1
             )
 
@@ -96,7 +93,7 @@ class Draw:
                     [x - RING_RADIUS, y - RING_RADIUS, x + RING_RADIUS, y + RING_RADIUS],
                     start = 0,
                     end = 360,
-                    fill = BLACK,
+                    fill = 'black',
                     width = 1
                 )
 
