@@ -74,6 +74,15 @@ async def help(ctx, *args):
 
     if args == '':
         await ctx.send(embed = helpEmbed())
+    elif args == 'help':
+        await ctx.send(embed = commandHelpEmbed(
+            command = 'help',
+            shortExplanation = "Shows help for a given command.",
+            examples = (
+                f"`{PREFIX}help help`: Shows this embed.\n"
+                f"`{PREFIX}help cd`: Shows help for the `cd` command."
+            )
+        ))
     elif args == 'cd':
         await ctx.send(embed = commandHelpEmbed(
             command = 'cd',
@@ -126,15 +135,15 @@ async def error(ctx, e, expected):
     a_logger.info(f"{expectedStr}ERROR: {str(e)}")
     await ctx.send(f"`{expectedStr}ERROR: {str(e)}`")
 
+# Configures the general help embed.
 def helpEmbed():
-    # Configures help embed.
     helpEmbed = discord.Embed(
         colour = discord.Colour.blue(),
         title = "Coxeter Bot Help"
     )
 
     print(PREFIX)
-    helpEmbed.add_field(name = f"`{PREFIX}help`", value = "You said this.", inline = False)
+    helpEmbed.add_field(name = f"`{PREFIX}help`", value = "Shows help for a given command.", inline = False)
     helpEmbed.add_field(name = f"`{PREFIX}cd [linearized diagram]`",
         value = (
             "Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), "
@@ -144,6 +153,7 @@ def helpEmbed():
 
     return helpEmbed
 
+# Creates a help embed for a given command.
 def commandHelpEmbed(command, shortExplanation, examples):
     embed = discord.Embed(
         colour = discord.Colour.blue(),
@@ -152,13 +162,14 @@ def commandHelpEmbed(command, shortExplanation, examples):
 
     embed.add_field(name = "Explanation", value = shortExplanation, inline = True)
     embed.add_field(name = "Examples", value = examples, inline = False)
+
     return embed
 
 # Configures logger.
 a_logger = logging.getLogger()
 a_logger.setLevel(logging.INFO)
 output_file_handler = logging.FileHandler("../../logs/log " +
-    datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".txt")
+    datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".txt", 'w', 'utf-8')
 stdout_handler = logging.StreamHandler(sys.stdout)
 a_logger.addHandler(output_file_handler)
 a_logger.addHandler(stdout_handler)
