@@ -15,7 +15,6 @@ INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=79590927588025
 POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
-
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
             # URL                 # Diatom              # Cirro               # Galoomba
@@ -166,9 +165,13 @@ async def cd(ctx, *cd):
 @client.command()
 async def wiki(ctx, *args):
     args = ' '.join(args).translate({32: '_'})
-    args = args[0].capitalize() + args[1:]
-    a_logger.info("COMMAND: wiki")
-    await ctx.send(f"{POLYTOPE_WIKI}{args}")
+
+    if args == '':
+        await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
+    else:
+        args = args[0].capitalize() + args[1:]
+        a_logger.info("COMMAND: wiki")
+        await ctx.send(f"{POLYTOPE_WIKI}{args}")
 
 # Creates a wiki redirect.
 @client.command()
