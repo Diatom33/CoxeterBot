@@ -17,8 +17,7 @@ TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
 
 # Users to ping on unexpected error:
-USER_ID = "370964201478553600"
-USER_ID2= "581141017823019038"
+USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554")
 
 client = commands.Bot(command_prefix = PREFIX)
 fileCount = 0

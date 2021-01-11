@@ -245,6 +245,7 @@ class Draw:
                 width = LINE_WIDTH,
                 fill = 'black'
             )
+
         elif edgeType == 'dotted':
             # Number of dashes in edge.
             dashes = 5
@@ -264,6 +265,7 @@ class Draw:
 
                 xy[0] = tuple(map(lambda x, y: x + 2 * y, xy[0], delta))
                 xy[1] = tuple(map(lambda x, y: x + 2 * y, xy[1], delta))
+
         elif edgeType == 'ellipsis':
             # Controls the dot spacing.
             spacing = 6
@@ -286,8 +288,6 @@ class Draw:
 
     # Draws text with a border at some particular location.
     def drawText(self, xy, text, textType):
-        xy = list(map(float, xy))
-
         # Configures text attributes.
         if textType == 'node':
             font = NODE_FONT
@@ -312,7 +312,7 @@ class Draw:
 
         # Positions text correctly.
         textSize = self.draw.textsize(text = text, font = font)
-        xy = list(map(lambda a, b: round(a - b / 2), xy, textSize))
+        xy = list(map(lambda a, b: a - b / 2, xy, textSize))
 
         # Draws border.
         self.__drawText(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
@@ -325,6 +325,9 @@ class Draw:
 
     # Primitive to draw a line on the image.
     def __drawLine(self, xy, width, fill):
+        # Rounds coordinates.
+        xy = tuple(map(lambda x: tuple(map(round, x)), xy))
+
         self.draw.line(
             xy = xy,
             width = width,
@@ -333,9 +336,12 @@ class Draw:
 
     # Primitive to draw a circle on the image.
     def __drawCircle(self, xy, radius, fill):
+        # Rounds coordinates.
         x, y = xy
+        xy = tuple(map(round, (x - radius, y - radius, x + radius, y + radius)))
+
         self.draw.ellipse(
-            xy = (x - radius, y - radius, x + radius, y + radius),
+            xy = xy,
             fill = fill,
             outline = 'black',
             width = NODE_BORDER_WIDTH
@@ -343,9 +349,12 @@ class Draw:
 
     # Primitive to draw a ring on the image.
     def __drawRing(self, xy, radius, fill):
+        # Rounds coordinates.
         x, y = xy
+        xy = tuple(map(round, (x - radius, y - radius, x + radius, y + radius)))
+
         self.draw.arc(
-            xy = (x - radius, y - radius, x + radius, y + radius),
+            xy = xy,
             start = 0,
             end = 360,
             fill = 'black',
@@ -354,6 +363,7 @@ class Draw:
 
     # Primitive to draw text on the image.
     def __drawText(self, xy, text, fill, font):
+        xy = tuple(map(round, xy))
         self.draw.text(xy = xy, text = text, fill = fill, font = font)
 
     # Shows the graph.
