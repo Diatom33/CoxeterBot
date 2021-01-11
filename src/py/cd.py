@@ -37,12 +37,13 @@ virtualNodesNumber = f"\*-?[1-9]|\*\(-?{numberRegex}\)"
 
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
-
+    # Class initializer.
     def __init__(self, string):
         # The index of the CD at which we're reading.
         self.index = 0
         self.string = string
 
+    # Tries to match a regex at certain point in the string.
     def matchRegex(self, regex):
         match = re.search(regex, self.string[self.index:])
         if match is None:

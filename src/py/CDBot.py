@@ -15,6 +15,7 @@ INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=79590927588025
 POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
+USER_ID = "370964201478553600"
 
 client = commands.Bot(command_prefix = PREFIX)
 fileCount = 0
@@ -166,6 +167,13 @@ async def wiki(ctx, *args):
     a_logger.info("COMMAND: wiki")
     await ctx.send(f"{POLYTOPE_WIKI}{args}")
 
+# Creates a wiki redirect.
+@client.command()
+@commands.has_role('Wiki Contributor')
+async def redirect(ctx, *args):
+    args = ' '.join(args)
+    await ctx.send(f"`Test! {args}`")
+
 # Gets the bot invite link.
 @client.command()
 async def invite(ctx):
@@ -199,13 +207,14 @@ async def prefix(ctx, *newPrefix):
 # Logs an error and posts it.
 async def error(ctx, e, expected):
     if expected:
-        expectedStr = ""
+        logMsg = f"ERROR: {str(e)}"
+        msg = f"```ERROR: {str(e)}```"
     else:
-        expectedStr = "UNEXPECTED "
+        logMsg = f"UNEXPECTED ERROR: {str(e)}"
+        msg = f"```UNEXPECTED ERROR: {str(e)}```\n\n<@{USER_ID}>"
 
-    msg = f"{expectedStr}ERROR: {str(e)}"
-    a_logger.info(msg)
-    await ctx.send(f"`{msg}`")
+    a_logger.info(logMsg)
+    await ctx.send(msg)
 
 # Creates a help embed for a given command.
 def commandHelpEmbed(command, shortExplanation, examples):

@@ -1,1 +1,2 @@
 Uses Lora by the Lora Project Authors, published under the SIL Open Font License 1.1.
+Uses PyWikiBot, published by the PyWikiBot team under the MIT License.
