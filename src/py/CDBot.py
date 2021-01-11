@@ -12,6 +12,7 @@ from cdError import CDError
 from draw import Draw
 
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
+POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
 
@@ -31,6 +32,99 @@ async def on_ready():
 
     a_logger.info("INFO: Bot is ready.")
     a_logger.info(f"INFO: Prefix is {PREFIX}")
+
+# Shows a help screen with a command list.
+client.remove_command("help")
+
+helpShortExplanation = "Shows in-depth help for a given command."
+cdShortExplanation = (
+    "Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), "
+    "based on [Richard Klitzing's notation]"
+    "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm)."
+)
+wikiShortExplanation = (
+    "Searches for a given article within the "
+    f"[Polytope Wiki]({POLYTOPE_WIKI})."
+)
+inviteShortExplanation = f"Posts the bot [invite link]({INVITE_LINK})."
+
+@client.command(pass_context = True)
+async def help(ctx, *args):
+    args = ' '.join(args)
+
+    if args == '':
+        # Configures the help embed.
+        helpEmbed = discord.Embed(
+            colour = discord.Colour.blue(),
+            title = "Coxeter Bot Help"
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}help`",
+            value = helpShortExplanation,
+            inline = False
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}cd [linearized diagram]`",
+            value = cdShortExplanation,
+            inline = False
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}wiki [article name]`",
+            value = wikiShortExplanation,
+            inline = False
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}invite`",
+            value = inviteShortExplanation,
+            inline = False
+        )
+
+        await ctx.send(embed = helpEmbed)
+    elif args == 'help':
+        await ctx.send(embed = commandHelpEmbed(
+            command = args,
+            shortExplanation = helpShortExplanation,
+            examples = (
+                f"`{PREFIX}help help`: Shows this embed.\n"
+                f"`{PREFIX}help cd`: Shows help for the `cd` command."
+            )
+        ))
+    elif args == 'cd':
+        await ctx.send(embed = commandHelpEmbed(
+            command = args,
+            shortExplanation = wikiShortExplanation,
+            examples = (
+                f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
+                f"`{PREFIX}cd s3s4o3x`: A diagram with various node types.\n"
+                f"`{PREFIX}cd x3x3x3*a`: A diagram with loops.\n"
+                f"`{PREFIX}cd *-c3x3x3x o3o3o3o3o`: A branching diagram."
+            )
+        ))
+    elif args == 'wiki':
+        await ctx.send(embed = commandHelpEmbed(
+            command = args,
+            shortExplanation = wikiShortExplanation,
+            examples = (
+                f"`{PREFIX}wiki x3o3o`: Searches for the tetrahedron.\n"
+                f"`{PREFIX}wiki cube`: Searches for a cube."
+            )
+        ))
+    elif args == 'invite':
+        await ctx.send(embed = commandHelpEmbed(
+            command = args,
+            shortExplanation = inviteShortExplanation,
+            examples = (
+                f"`{PREFIX}invite`"
+            )
+        ))
+    else:
+        await ctx.send(f"Command `{args}` not recognized.")
+
+    a_logger.info(f"COMMAND: help {args}")
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
@@ -64,46 +158,13 @@ async def cd(ctx, *cd):
         os.remove(fileName)
         a_logger.info(f"INFO: Removed {fileName} file.")
 
-# Shows a help screen with a command list.
-client.remove_command("help")
-@client.command(pass_context = True)
-async def help(ctx, *args):
-    args = ' '.join(args)
-
-    if args == '':
-        await ctx.send(embed = helpEmbed())
-    elif args == 'help':
-        await ctx.send(embed = commandHelpEmbed(
-            command = args,
-            shortExplanation = "Shows in-depth help for a given command.",
-            examples = (
-                f"`{PREFIX}help help`: Shows this embed.\n"
-                f"`{PREFIX}help cd`: Shows help for the `cd` command."
-            )
-        ))
-    elif args == 'cd':
-        await ctx.send(embed = commandHelpEmbed(
-            command = args,
-            shortExplanation = "Renders the [Coxeter–Dynkin](https://polytope.miraheze.org/wiki/Coxeter_diagram) diagram corresponding to a string.",
-            examples = (
-                f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
-                f"`{PREFIX}cd s3s4o3x`: A diagram with various node types.\n"
-                f"`{PREFIX}cd x3x3x3*a`: A diagram with loops.\n"
-                f"`{PREFIX}cd *-c3x3x3x o3o3o3o3o`: A branching diagram."
-            )
-        ))
-    elif args == 'invite':
-        await ctx.send(embed = commandHelpEmbed(
-            command = args,
-            shortExplanation = f"Posts the bot [invite link]({INVITE_LINK}).",
-            examples = (
-                f"`{PREFIX}invite`"
-            )
-        ))
-    else:
-        await ctx.send(f"Command `{args}` not recognized!")
-
-    a_logger.info(f"COMMAND: help {args}")
+# Posts the link to a wiki article.
+@client.command()
+async def wiki(ctx, *args):
+    args = ' '.join(args).translate({32: '_'})
+    args = args[0].capitalize() + args[1:]
+    a_logger.info("COMMAND: wiki")
+    await ctx.send(f"{POLYTOPE_WIKI}{args}")
 
 # Gets the bot invite link.
 @client.command()
@@ -145,37 +206,6 @@ async def error(ctx, e, expected):
     msg = f"{expectedStr}ERROR: {str(e)}"
     a_logger.info(msg)
     await ctx.send(f"`{msg}`")
-
-# Configures the general help embed.
-def helpEmbed():
-    helpEmbed = discord.Embed(
-        colour = discord.Colour.blue(),
-        title = "Coxeter Bot Help"
-    )
-
-    helpEmbed.add_field(
-        name = f"`{PREFIX}help`",
-        value = "Shows help for a given command.",
-        inline = False
-    )
-
-    helpEmbed.add_field(
-        name = f"`{PREFIX}cd [linearized diagram]`",
-        value = (
-            "Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), "
-            "based on [Richard Klitzing's notation]"
-            "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm)."
-        ),
-        inline = False
-    )
-
-    helpEmbed.add_field(
-        name = f"`{PREFIX}invite`",
-        value = f"Posts the bot [invite link]({INVITE_LINK}).",
-        inline = False
-    )
-
-    return helpEmbed
 
 # Creates a help embed for a given command.
 def commandHelpEmbed(command, shortExplanation, examples):

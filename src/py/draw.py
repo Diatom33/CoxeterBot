@@ -7,15 +7,15 @@ import math
 SCALE = 0.8
 
 NODE_RADIUS = 12
-NODE_BORDER_WarrayIndexTH = 4
+NODE_BORDER_WIDTH = 4
 
 RING_RADIUS = 24
-RING_WarrayIndexTH = 4
+RING_WIDTH = 4
 
 NODE_SPACING = 90
 COMPONENT_SPACING = 90
 
-LINE_WarrayIndexTH = 8
+LINE_WIDTH = 8
 TEXT_DISTANCE = 20
 
 ELLIPSIS_RADIUS = 3
@@ -49,7 +49,7 @@ class Draw:
 
         for component in graph.components():
             self.add(component)
-            
+
     def currentPos(self):
         return (self.x, self.y)
 
@@ -57,34 +57,33 @@ class Draw:
     # Currently, just puts everything in a straight line.
     # TODO: make this draw the trees prettily.
     def add(self, component):
-        print(f"Component, length {len(component)}")
         straight, firstNode = self.isStraight(component)
-        
+
         if straight:
             drawingMode = 'line'
-            
+
             self.addNode(firstNode, self.currentPos(), drawingMode)
             prevNode = firstNode
-            
+
             if firstNode.degree() != 0:
                 node = firstNode.neighbors[0]
-                
+
                 while node.degree() != 1:
                     self.x += NODE_SPACING
                     self.addNode(node, self.currentPos(), drawingMode)
-                    
+
                     if node.neighbors[0] is prevNode:
                         prevNode = node
                         node = node.neighbors[1]
                     else:
                         prevNode = node
-                        node = node.neighbors[0]  
+                        node = node.neighbors[0]
 
                 self.x += NODE_SPACING
-                self.addNode(node, self.currentPos(), drawingMode)             
+                self.addNode(node, self.currentPos(), drawingMode)
         else:
             drawingMode = 'polygon'
-            
+
             n = len(component)
             radius = NODE_SPACING / (2 * math.sin(math.pi / n))
             self.x += radius
@@ -97,7 +96,7 @@ class Draw:
                 ), drawingMode)
                 angle += 2 * math.pi / n
 
-            self.x += radius            
+            self.x += radius
 
         self.x += COMPONENT_SPACING
 
@@ -109,10 +108,10 @@ class Draw:
             "xy": (coords[0], coords[1])
         }
         self.updateBoundingBox(coords)
-        
+
         # Adds the arrayIndex property to the node, storing its index in the array.
         node.arrayIndex = len(self.nodes)
-        self.nodes.append(newNode)        
+        self.nodes.append(newNode)
 
         # Adds edges.
         i = 0
@@ -137,7 +136,7 @@ class Draw:
 
         isCycle = True
         firstNode = None
-        
+
         for node in component:
             degree = node.degree()
 
@@ -147,7 +146,7 @@ class Draw:
                 isCycle = False
                 if firstNode is None or firstNode.stringIndex > node.stringIndex:
                     firstNode = node
-                
+
         return (not isCycle, firstNode)
 
     # Transforms node coordinates to image coordinates.
@@ -198,11 +197,11 @@ class Draw:
             else:
                 edgeType = 'normal'
 
-            self.__drawEdge(edgeXy, edgeType)
+            self.drawEdge(edgeXy, edgeType)
 
             # Draws label.
             if edgeType == 'normal' and label != '3':
-                self.__drawText(textXy, label, textType = 'edge')
+                self.drawText(textXy, label, textType = 'edge')
 
         # Draws each node.
         for node in self.nodes:
@@ -231,40 +230,19 @@ class Draw:
                     else:
                         textType = 'node'
 
-                    self.__drawText(xy = xy, text = value, textType = textType)
+                    self.drawText(xy = xy, text = value, textType = textType)
 
         return self.image.resize(
             size = (round(self.image.size[0] * SCALE), round(self.image.size[1] * SCALE)),
-            resample = Image.BILINEAR
+            resample = Image.BICUBIC
         )
 
-    # Draws a circle on the image.
-    def __drawCircle(self, xy, radius, fill):
-        x, y = xy
-        self.draw.ellipse(
-            xy = (x - radius, y - radius, x + radius, y + radius),
-            fill = fill,
-            outline = 'black',
-            width = NODE_BORDER_WarrayIndexTH
-        )
-
-    # Draws a ring on the image.
-    def __drawRing(self, xy, radius, fill):
-        x, y = xy
-        self.draw.arc(
-            xy = (x - radius, y - radius, x + radius, y + radius),
-            start = 0,
-            end = 360,
-            fill = 'black',
-            width = RING_WarrayIndexTH
-        )
-
-    # Draws a line segment on the image.
-    def __drawEdge(self, xy, edgeType):
+    # Draws an edge on the image, of one of various parts..
+    def drawEdge(self, xy, edgeType):
         if edgeType == 'normal':
-            self.draw.line(
+            self.__drawLine(
                 xy = xy,
-                width = LINE_WarrayIndexTH,
+                width = LINE_WIDTH,
                 fill = 'black'
             )
         elif edgeType == 'dotted':
@@ -278,9 +256,9 @@ class Draw:
             xy[1] = tuple(map(lambda x, y: x + y, xy[0], delta))
 
             for i in range(dashes):
-                self.draw.line(
+                self.__drawLine(
                     xy = tuple(xy),
-                    width = LINE_WarrayIndexTH,
+                    width = LINE_WIDTH,
                     fill = 'black'
                 )
 
@@ -304,10 +282,10 @@ class Draw:
 
                 xy = tuple(map(lambda x, y: x + y, xy, delta))
         else:
-            self.error("Edge type not recognized.")
+            self.error("Edge type not recognized.", dev = True)
 
-    # Draws text with a white border at some particular location.
-    def __drawText(self, xy, text, textType):
+    # Draws text with a border at some particular location.
+    def drawText(self, xy, text, textType):
         xy = list(map(float, xy))
 
         # Configures text attributes.
@@ -317,7 +295,7 @@ class Draw:
             backColor = 'black'
 
             # Offset, seems necessary for some reason.
-            xy = list(map(lambda a, b: a + b, xy, (1, -1)))
+            xy = list(map(lambda a, b: a + b, xy, (1, -2)))
         elif textType == 'holosnub':
             font = HOLOSNUB_FONT
             foreColor = 'black'
@@ -330,20 +308,53 @@ class Draw:
             foreColor = 'black'
             backColor = 'white'
         else:
-            self.error("Text type not recognized.")
+            self.error("Text type not recognized.", dev = True)
 
         # Positions text correctly.
         textSize = self.draw.textsize(text = text, font = font)
         xy = list(map(lambda a, b: round(a - b / 2), xy, textSize))
 
         # Draws border.
-        self.draw.text(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
-        self.draw.text(xy = (xy[0] + FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
-        self.draw.text(xy = (xy[0], xy[1] - FONT_OUTLINE), text = text, fill = backColor, font = font)
-        self.draw.text(xy = (xy[0], xy[1] + FONT_OUTLINE), text = text, fill = backColor, font = font)
+        self.__drawText(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
+        self.__drawText(xy = (xy[0] + FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
+        self.__drawText(xy = (xy[0], xy[1] - FONT_OUTLINE), text = text, fill = backColor, font = font)
+        self.__drawText(xy = (xy[0], xy[1] + FONT_OUTLINE), text = text, fill = backColor, font = font)
 
         # Overlays text.
-        self.draw.text(xy = xy, text = text, fill = foreColor, font = font)
+        self.__drawText(xy = xy, text = text, fill = foreColor, font = font)
+
+    # Primitive to draw a line on the image.
+    def __drawLine(self, xy, width, fill):
+        self.draw.line(
+            xy = xy,
+            width = width,
+            fill = fill
+        )
+
+    # Primitive to draw a circle on the image.
+    def __drawCircle(self, xy, radius, fill):
+        x, y = xy
+        self.draw.ellipse(
+            xy = (x - radius, y - radius, x + radius, y + radius),
+            fill = fill,
+            outline = 'black',
+            width = NODE_BORDER_WIDTH
+        )
+
+    # Primitive to draw a ring on the image.
+    def __drawRing(self, xy, radius, fill):
+        x, y = xy
+        self.draw.arc(
+            xy = (x - radius, y - radius, x + radius, y + radius),
+            start = 0,
+            end = 360,
+            fill = 'black',
+            width = RING_WIDTH
+        )
+
+    # Primitive to draw text on the image.
+    def __drawText(self, xy, text, fill, font):
+        self.draw.text(xy = xy, text = text, fill = fill, font = font)
 
     # Shows the graph.
     def show(self):
@@ -353,5 +364,10 @@ class Draw:
     def save(self, *args):
         self.draw().save(*args)
 
-    def error(self, text):
-        raise CDError(f"Graph drawing failed. {text}")
+    def error(self, text, dev = False):
+        msg = f"Graph drawing failed. {text}"
+
+        if dev:
+            raise Exception(msg)
+        else:
+            raise CDError(msg)

@@ -5,10 +5,9 @@ from cdError import CDError
 # Nodes in a CD.
 class Node:
     # Class constructor.
-    def __init__(self, string, index):
-        value = string[index]
+    def __init__(self, value, index):
         self.stringIndex = index
-        
+
         if value != 'ß':
             self.value = value
         else:
