@@ -137,6 +137,10 @@ class CD:
 
             self.index += 1
 
+        # Throws an error if the CD ends in an edge label.
+        if readingNode:
+            self.error("Node expected before string end.")
+
         # Links corresponding nodes.
         for edge in edges:
             # Checks if nodes in range.
@@ -158,10 +162,7 @@ class CD:
                 self.error(str(e))
 
         # Returns the graph.
-        if not readingNode:
-            return Graph(nodes)
-        else:
-            self.error("Node expected before string end.")
+        return Graph(nodes)
 
     def error(self, text):
         raise CDError(f"Diagram parsing failed at index {str(self.index)}. {text}")

@@ -87,8 +87,9 @@ async def help(ctx, *args):
             shortExplanation = "Renders the [Coxeter–Dynkin](https://polytope.miraheze.org/wiki/Coxeter_diagram) diagram corresponding to a string.",
             examples = (
                 f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
-                f"`{PREFIX}cd s3s4q3x`: A diagram with various node types.\n"
-                f"`{PREFIX}cd x3x3x3*a`: A diagram with loops."
+                f"`{PREFIX}cd s3s4o3x`: A diagram with various node types.\n"
+                f"`{PREFIX}cd x3x3x3*a`: A diagram with loops.\n"
+                f"`{PREFIX}cd *-c3x3x3x o3o3o3o3o`: A branching diagram."
             )
         ))
     elif args == 'invite':
