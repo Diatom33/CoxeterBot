@@ -13,11 +13,17 @@ class NodeRef:
 
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
-    # Matches every possible node label.
+    # Matches every letter, or the German eszett.
     nodeLabels = "[a-zA-Zß]"
 
-    # Matches either a fraction, or a single number, or a single letter, or a special symbol.
-    edgeLabels = "([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[a-zA-Z]|[∞Ø]"
+    # Matches one of the follwing:
+    # A fraction of two natural numbers.
+    # A single number, possibly followed by '.
+    # A single letter, lowercase or uppercase, possibly followed by '.
+    # ∞, possibly followed by '.
+    # Ø
+    # 3 or more dots in succession. (...)
+    edgeLabels = "(([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[a-zA-Z]|∞)'?|Ø|\.\.\.+"
 
     def __init__(self, string):
         # The index of the CD at which we're reading.

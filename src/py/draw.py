@@ -22,6 +22,8 @@ EDGE_FONT_SIZE = 24
 NODE_FONT_SIZE = 18
 HOLOSNUB_FONT_SIZE = 36
 
+ELLIPSIS_RADIUS = 3
+
 FONT_NAME = "Lora-regular"
 
 EDGE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
@@ -167,10 +169,17 @@ class Draw:
                 textXy[1] += TEXT_DISTANCE
 
             # Draws edge.
-            self.__drawEdge(edgeXy, dotted = (label == "Ø"))
+            if label == 'Ø':
+                edgeType = 'dotted'
+            elif label[:3] == '...':
+                edgeType = 'ellipsis'
+            else:
+                edgeType = 'normal'
+                
+            self.__drawEdge(edgeXy, edgeType)
 
             # Draws label.
-            if label != "3" and label != "Ø":
+            if edgeType == 'normal' and label != '3':
                 self.__drawText(textXy, label, textType = 'edge')
 
         # Draws each node.
@@ -229,16 +238,20 @@ class Draw:
         )
 
     # Draws a line segment on the image.
-    def __drawEdge(self, xy, dotted):
-        if not dotted:
+    def __drawEdge(self, xy, edgeType):
+        if edgeType == 'normal':
             self.draw.line(
                 xy = xy,
                 width = LINE_WIDTH,
                 fill = 'black'
             )
-        else:
+        elif edgeType == 'dotted': 
+            # Number of dashes in edge.
             dashes = 5
+            
+            # Direction vector of each dash.
             delta = tuple(map(lambda x, y: (y - x) / (2 * dashes - 1), xy[0], xy[1]))
+            
             xy = list(xy)
             xy[1] = tuple(map(lambda x, y: x + y, xy[0], delta))
 
@@ -251,7 +264,25 @@ class Draw:
 
                 xy[0] = tuple(map(lambda x, y: x + 2 * y, xy[0], delta))
                 xy[1] = tuple(map(lambda x, y: x + 2 * y, xy[1], delta))
+        elif edgeType == 'ellipsis':   
+            # Controls the dot spacing.
+            spacing = 6
+            
+            # Direction vector between two ellipses.
+            delta = tuple(map(lambda x, y: (y - x) / spacing, xy[0], xy[1]))
+            
+            xy = tuple(map(lambda x, y: x + y * (spacing / 2 - 1), xy[0], delta))
 
+            for i in range(3):
+                self.__drawCircle(
+                    xy = xy,
+                    radius = ELLIPSIS_RADIUS,
+                    fill = 'black'
+                )
+
+                xy = tuple(map(lambda x, y: x + y, xy, delta))
+        else:
+            self.error("Edge type not recognized.")
 
     # Draws text with a white border at some particular location.
     def __drawText(self, xy, text, textType):
