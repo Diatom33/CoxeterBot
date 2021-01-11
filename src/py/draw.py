@@ -7,30 +7,29 @@ import math
 SCALE = 0.8
 
 NODE_RADIUS = 12
-NODE_BORDER_WIDTH = 4
+NODE_BORDER_WarrayIndexTH = 4
 
 RING_RADIUS = 24
-RING_WIDTH = 4
+RING_WarrayIndexTH = 4
 
 NODE_SPACING = 90
 COMPONENT_SPACING = 90
 
-LINE_WIDTH = 8
+LINE_WarrayIndexTH = 8
 TEXT_DISTANCE = 20
+
+ELLIPSIS_RADIUS = 3
+
+FONT_NAME = "Lora-regular"
+FONT_OUTLINE = 2
 
 EDGE_FONT_SIZE = 24
 NODE_FONT_SIZE = 18
 HOLOSNUB_FONT_SIZE = 36
 
-ELLIPSIS_RADIUS = 3
-
-FONT_NAME = "Lora-regular"
-
 EDGE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
 NODE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", NODE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
 HOLOSNUB_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", HOLOSNUB_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
-
-FONT_OUTLINE = 2
 
 PADDING = 40
 
@@ -50,17 +49,42 @@ class Draw:
 
         for component in graph.components():
             self.add(component)
+            
+    def currentPos(self):
+        return (self.x, self.y)
 
     # Adds a new component to the diagram.
     # Currently, just puts everything in a straight line.
     # TODO: make this draw the trees prettily.
     def add(self, component):
-        if self.isStraight(component):
+        print(f"Component, length {len(component)}")
+        straight, firstNode = self.isStraight(component)
+        
+        if straight:
             drawingMode = 'line'
+            
+            self.addNode(firstNode, self.currentPos(), drawingMode)
+            prevNode = firstNode
+            
+            if firstNode.degree() != 0:
+                node = firstNode.neighbors[0]
+                
+                while node.degree() != 1:
+                    self.x += NODE_SPACING
+                    self.addNode(node, self.currentPos(), drawingMode)
+                    
+                    if node.neighbors[0] is prevNode:
+                        prevNode = node
+                        node = node.neighbors[1]
+                    else:
+                        prevNode = node
+                        node = node.neighbors[0]  
+
+                self.x += NODE_SPACING
+                self.addNode(node, self.currentPos(), drawingMode)             
         else:
             drawingMode = 'polygon'
-
-        if drawingMode == 'polygon':
+            
             n = len(component)
             radius = NODE_SPACING / (2 * math.sin(math.pi / n))
             self.x += radius
@@ -73,16 +97,7 @@ class Draw:
                 ), drawingMode)
                 angle += 2 * math.pi / n
 
-            self.x += radius
-
-        elif drawingMode == 'line':
-            self.x -= NODE_SPACING
-            for node in component:
-                self.x += NODE_SPACING
-                self.addNode(node, (self.x, self.y), drawingMode)
-
-        else:
-            self.error("Drawing mode not recognized.")
+            self.x += radius            
 
         self.x += COMPONENT_SPACING
 
@@ -94,16 +109,19 @@ class Draw:
             "xy": (coords[0], coords[1])
         }
         self.updateBoundingBox(coords)
-        self.nodes.append(newNode)
+        
+        # Adds the arrayIndex property to the node, storing its index in the array.
+        node.arrayIndex = len(self.nodes)
+        self.nodes.append(newNode)        
 
         # Adds edges.
         i = 0
         for neighbor in node.neighbors:
             # Guarantees no duplicates.
-            if neighbor.ID < node.ID:
+            if hasattr(neighbor, 'arrayIndex'):
                 self.edges.append({
-                    0: neighbor.ID,
-                    1: node.ID,
+                    0: neighbor.arrayIndex,
+                    1: node.arrayIndex,
                     "label": node.edgeLabels[i],
                     "drawingMode": drawingMode
                 })
@@ -112,21 +130,25 @@ class Draw:
 
     # A connected graph is a line graph iff every vertex has degree ≤ 2,
     # and at least one vertex has degree 1.
+    # Returns whether the graph is a line graph, and if so, its first node (in string order).
     def isStraight(self, component):
         if len(component) < 3:
-            return True
+            return (True, component[0])
 
         isCycle = True
-
+        firstNode = None
+        
         for node in component:
             degree = node.degree()
 
             if degree > 2:
-                return False
+                return (False, None)
             elif degree == 1:
                 isCycle = False
-
-        return not isCycle
+                if firstNode is None or firstNode.stringIndex > node.stringIndex:
+                    firstNode = node
+                
+        return (not isCycle, firstNode)
 
     # Transforms node coordinates to image coordinates.
     def transformCoords(self, coords):
@@ -175,7 +197,7 @@ class Draw:
                 edgeType = 'ellipsis'
             else:
                 edgeType = 'normal'
-                
+
             self.__drawEdge(edgeXy, edgeType)
 
             # Draws label.
@@ -223,7 +245,7 @@ class Draw:
             xy = (x - radius, y - radius, x + radius, y + radius),
             fill = fill,
             outline = 'black',
-            width = NODE_BORDER_WIDTH
+            width = NODE_BORDER_WarrayIndexTH
         )
 
     # Draws a ring on the image.
@@ -234,7 +256,7 @@ class Draw:
             start = 0,
             end = 360,
             fill = 'black',
-            width = RING_WIDTH
+            width = RING_WarrayIndexTH
         )
 
     # Draws a line segment on the image.
@@ -242,35 +264,35 @@ class Draw:
         if edgeType == 'normal':
             self.draw.line(
                 xy = xy,
-                width = LINE_WIDTH,
+                width = LINE_WarrayIndexTH,
                 fill = 'black'
             )
-        elif edgeType == 'dotted': 
+        elif edgeType == 'dotted':
             # Number of dashes in edge.
             dashes = 5
-            
+
             # Direction vector of each dash.
             delta = tuple(map(lambda x, y: (y - x) / (2 * dashes - 1), xy[0], xy[1]))
-            
+
             xy = list(xy)
             xy[1] = tuple(map(lambda x, y: x + y, xy[0], delta))
 
             for i in range(dashes):
                 self.draw.line(
                     xy = tuple(xy),
-                    width = LINE_WIDTH,
+                    width = LINE_WarrayIndexTH,
                     fill = 'black'
                 )
 
                 xy[0] = tuple(map(lambda x, y: x + 2 * y, xy[0], delta))
                 xy[1] = tuple(map(lambda x, y: x + 2 * y, xy[1], delta))
-        elif edgeType == 'ellipsis':   
+        elif edgeType == 'ellipsis':
             # Controls the dot spacing.
             spacing = 6
-            
+
             # Direction vector between two ellipses.
             delta = tuple(map(lambda x, y: (y - x) / spacing, xy[0], xy[1]))
-            
+
             xy = tuple(map(lambda x, y: x + y * (spacing / 2 - 1), xy[0], delta))
 
             for i in range(3):

@@ -25,14 +25,16 @@ class CD:
     # 3 or more dots in succession. (...)
     edgeLabels = "(([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[a-zA-Z]|∞)'?|Ø|\.\.\.+"
 
+    virtualNodesLetter = "\*-?[a-z]"
+    virtualNodesNumber = "\*-?[1-9]|\*\(-?[1-9][0-9]*\)"
+
     def __init__(self, string):
         # The index of the CD at which we're reading.
         self.index = 0
         self.string = string
 
-    # Reads a number from a given position.
-    def readNumber(self):
-        match = re.search(CD.edgeLabels, self.string[self.index:])
+    def matchRegex(self, regex):
+        match = re.search(regex, self.string[self.index:])
         if match is None:
             return None
 
@@ -44,6 +46,19 @@ class CD:
         self.index += span[1] - span[0] - 1
 
         return match.group()
+
+    # Reads a number from a given position.
+    def readNumber(self):
+        return self.matchRegex(CD.edgeLabels)
+
+    # Reads a virtual node from a given position.
+    def readVirtualNode(self, nodeType):
+        if nodeType == 'letter':
+            return self.matchRegex(CD.virtualNodesLetter)
+        elif nodeType == 'number':
+            return self.matchRegex(CD.virtualNodesNumber)
+        else:
+            self.error("Invalid virtual node type")
 
     # Converts a textual Coxeter Diagram to a graph.
     def toGraph(self):
@@ -60,10 +75,10 @@ class CD:
         # Reads through string.
         while self.index < len(cd):
             # Skips spaces.
-            if cd[self.index] == " ":  
+            if cd[self.index] == " ":
                 if readingNode:
-                    self.error("Expected node label, got space instead.") 
-                    
+                    self.error("Expected node label, got space instead.")
+
                 readingNode = True
                 edgeLabel = None
 
@@ -76,27 +91,27 @@ class CD:
                 if not readingNode:
                     self.error("Expected edge label, got virtual node instead.")
 
-                self.index += 1
-                hyphen = False
-
-                # Hyphen.
-                if self.index < len(cd) and cd[self.index] == '-':
-                    hyphen = True
-                    self.index += 1
-
-                # Declares the node index.
-                if self.index < len(cd):
-                    nodeIndex = ord(cd[self.index]) - ord('a')
+                virtualNode = self.readVirtualNode('letter')
+                if virtualNode is not None:
+                    # Hyphen.
+                    if virtualNode[1] == '-':
+                        nodeIndex = ord('a') - ord(virtualNode[2]) - 1
+                    else:
+                        nodeIndex = ord(virtualNode[1]) - ord('a')
+                        nodeIndex = ord(virtualNode[1]) - ord('a')
                 else:
-                    self.error("Expected lowercase letter, got string end instead.")
+                    print(self.index)
+                    virtualNode = self.readVirtualNode('number')
+                    if virtualNode is None:
+                        self.error("Invalid virtual node.")
 
-                # Checks that the node index is valid.
-                if nodeIndex < 0 or nodeIndex >= 26:
-                    self.error("Virtual node not a lowercase letter.")
+                    # Parenthesis.
+                    if virtualNode[1] == '(':
+                        virtualNode = virtualNode[2:-1]
+                    else:
+                        virtualNode = virtualNode[1:]
 
-                # Puts a minus sign if necessary.
-                if hyphen:
-                    nodeIndex = -(nodeIndex + 1)
+                    nodeIndex = int(virtualNode) - 1
 
                 newNodeRef = NodeRef(nodeIndex, self.index)
 
@@ -116,7 +131,7 @@ class CD:
                     self.error(f"Invalid node symbol {cd[self.index]}")
 
                 newNodeRef = NodeRef(len(nodes), self.index)
-                nodes.append(Node(cd[self.index]))
+                nodes.append(Node(cd, self.index))
 
                 # Toggles the flag to link stuff.
                 linkNodes = True

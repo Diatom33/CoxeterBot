@@ -4,10 +4,11 @@ from cdError import CDError
 
 # Nodes in a CD.
 class Node:
-    __index = 0
-
     # Class constructor.
-    def __init__(self, value):
+    def __init__(self, string, index):
+        value = string[index]
+        self.stringIndex = index
+        
         if value != 'ß':
             self.value = value
         else:
@@ -28,6 +29,9 @@ class Node:
 
         if node in self.neighbors:
             raise CDError("Can't link two nodes twice.")
+
+        if label == "1" or label == "1/2":
+            raise CDError(f"Invalid edge label {label}.")
 
         if label != "2":
             self.neighbors.append(node)
@@ -58,12 +62,6 @@ class Graph:
     def __init__(self, array):
         self.array = array
         self.idx = 0
-
-        # Adds the ID property to each node, storing its index in the array.
-        i = 0
-        for node in array:
-            node.ID = i
-            i += 1
 
     # Class iterator.
     def __iter__(self):
