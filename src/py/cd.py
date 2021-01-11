@@ -16,9 +16,7 @@ class CD:
     def __init__(self, string):
         # The index of the CD at which we're reading.
         self.index = 0
-
-        # Removes hyphens from CD.
-        self.string = string.translate({45: None})
+        self.string = string
 
     # Reads a number from a given position.
     def readNumber(self):
@@ -53,6 +51,10 @@ class CD:
             if cd[self.index] == " ":
                 readingNode = True
 
+            # Skips hyphens in the middle of the string.
+            elif cd[self.index] == "-":
+                pass
+
             # Reads virtual node
             elif cd[self.index] == "*":
                 self.index += 1
@@ -78,6 +80,9 @@ class CD:
                 if len(nodes) > MAX_LEN:
                     self.error("Diagram too big.")
 
+                if not re.findall(CD.nodeLabels, cd[self.index]):
+                    self.error(f"Invalid node symbol {cd[self.index]}")
+
                 newNode = Node(cd[self.index])
                 nodes.append(newNode)
 
@@ -93,7 +98,7 @@ class CD:
 
                 prevEdge = self.readNumber()
                 if prevEdge is None:
-                    self.error("Edge symbol not recognized.")
+                    self.error(f"Invalid edge symbol {cd[self.index]}")
 
                 readingNode = True
 
