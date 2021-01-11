@@ -4,6 +4,8 @@ from cdError import CDError
 import math
 
 # Constants:
+SCALE = 0.8
+
 NODE_RADIUS = 12
 NODE_BORDER_WIDTH = 4
 
@@ -28,7 +30,7 @@ HOLOSNUB_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", HOLOSNUB_FONT_SIZE
 
 FONT_OUTLINE = 2
 
-PADDING = 60
+PADDING = 40
 
 # Draws a graph.
 class Draw:
@@ -200,7 +202,10 @@ class Draw:
 
                     self.__drawText(xy = xy, text = value, textType = textType)
 
-        return self.image
+        return self.image.resize(
+            size = (round(self.image.size[0] * SCALE), round(self.image.size[1] * SCALE)),
+            resample = Image.BILINEAR
+        )
 
     # Draws a circle on the image.
     def __drawCircle(self, xy, radius, fill):

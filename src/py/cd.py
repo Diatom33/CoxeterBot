@@ -10,8 +10,8 @@ class CD:
     # Matches every possible node label.
     nodeLabels = "[a-zA-Zß]"
 
-    # Matches either a fraction, or a single number, or a special symbol.
-    edgeLabels = "([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[∞Ø]"
+    # Matches either a fraction, or a single number, or a single letter, or a special symbol.
+    edgeLabels = "([1-9][0-9]*\/[1-9][0-9]*)|[1-9][0-9]*|[a-zA-Z]|[∞Ø]"
 
     def __init__(self, string):
         # The index of the CD at which we're reading.
@@ -21,21 +21,19 @@ class CD:
         self.string = string.translate({45: None})
 
     # Reads a number from a given position.
-    # Returns whether it succeeded.
     def readNumber(self):
         match = re.search(CD.edgeLabels, self.string[self.index:])
         if match is None:
-            return False
+            return None
 
         span = match.span()
 
         if span[0] != 0:
-            return False
+            return None
 
         self.index += span[1] - span[0] - 1
-        self.number = match.group()
 
-        return True
+        return match.group()
 
     # Converts a textual Coxeter Diagram to a graph.
     def toGraph(self):
@@ -47,11 +45,13 @@ class CD:
         prevEdge = 0 # Most recently read edge label.
         prevSpace = False # Does a space separate the last two nodes?
 
+        readingNode = True # Are we reading a node (or an edge)?
+
         # Reads through string.
         while self.index < len(cd):
             # Skips spaces.
             if cd[self.index] == " ":
-                pass
+                readingNode = True
 
             # Reads virtual node
             elif cd[self.index] == "*":
@@ -73,15 +73,8 @@ class CD:
                 newNode = nodes[nodeIndex]
                 linkNodes = True
 
-            # Edge values
-            elif self.readNumber():
-                if prevNode is None:
-                    self.error("Node expected before edge.")
-
-                prevEdge = self.number
-
             # Node values
-            elif re.findall(CD.nodeLabels, cd[self.index]):
+            elif readingNode:
                 if len(nodes) > MAX_LEN:
                     self.error("Diagram too big.")
 
@@ -91,32 +84,32 @@ class CD:
                 # Toggles the flag to link stuff.
                 linkNodes = True
 
-            # No Matches
+                readingNode = False
+
+            # Edge values
             else:
-                self.error("Node symbol not recognized.")
+                if prevNode is None:
+                    self.error("Node expected before edge.")
+
+                prevEdge = self.readNumber()
+                if prevEdge is None:
+                    self.error("Edge symbol not recognized.")
+
+                readingNode = True
 
             # Links two nodes if necessary.
             if linkNodes:
-                # If there's no previous node, just updates prevNode.
-                if prevNode is not None:
-                    # If prevEdge is None, this means there's two nodes one after another.
-                    if prevEdge is None:
-                        # Two consecutive nodes must be separated by a space.
-                        if not prevSpace:
-                            self.error("Two nodes can't be adjacent.")
-                    # If prevEdge is not None, tries to link the nodes.
-                    else:
-                        try:
-                            prevNode.linkTo(newNode, prevEdge)
-                        except CDError as e:
-                            self.error(str(e))
+                if not (prevNode is None or prevEdge is None):
+                    try:
+                        prevNode.linkTo(newNode, prevEdge)
+                    except CDError as e:
+                        self.error(str(e))
 
                 # Updates variables.
                 linkNodes = False
                 prevNode = newNode
                 prevEdge = None
 
-            prevSpace = (cd[self.index] == " ")
             self.index += 1
 
         if prevEdge is None:
