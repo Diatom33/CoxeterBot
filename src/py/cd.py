@@ -54,7 +54,10 @@ class CD:
         # Reads through string.
         while self.index < len(cd):
             # Skips spaces.
-            if cd[self.index] == " ":
+            if cd[self.index] == " ":  
+                if readingNode:
+                    self.error("Expected node label, got space instead.") 
+                    
                 readingNode = True
                 edgeLabel = None
 
@@ -79,7 +82,7 @@ class CD:
                 if self.index < len(cd):
                     nodeIndex = ord(cd[self.index]) - ord('a')
                 else:
-                    self.error("Lowercase letter expected before string end.")
+                    self.error("Expected lowercase letter, got string end instead.")
 
                 # Checks that the node index is valid.
                 if nodeIndex < 0 or nodeIndex >= 26:
@@ -139,7 +142,7 @@ class CD:
 
         # Throws an error if the CD ends in an edge label.
         if readingNode:
-            self.error("Node expected before string end.")
+            self.error("Node label expected, got string end instead.")
 
         # Links corresponding nodes.
         for edge in edges:
