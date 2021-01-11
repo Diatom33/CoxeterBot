@@ -17,7 +17,8 @@ TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
 
 # Users to ping on unexpected error:
-USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554")
+USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
+            # URL                 # Diatom              # Cirro               # Galoomba
 
 client = commands.Bot(command_prefix = PREFIX)
 fileCount = 0
@@ -143,10 +144,10 @@ async def cd(ctx, *cd):
         try:
             temp = Draw(CD(cd).toGraph()).draw()
         except CDError as e:
-            await error(ctx, e, expected = True)
+            await error(ctx, e, dev = False)
             return
         except Exception as e:
-            await error(ctx, e, expected = False)
+            await error(ctx, e, dev = True)
             a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             return
 
@@ -206,14 +207,26 @@ async def prefix(ctx, *newPrefix):
     a_logger.info(f"INFO: prefix changed to {newPrefix}")
     await ctx.send(f"Prefix changed to {PREFIX}")
 
+# Throws an error. For testing purposes only.
+@commands.has_permissions(administrator = True)
+@client.command()
+async def error(ctx):
+    await error(ctx, Exception("Test error!"), dev = True)
+
 # Logs an error and posts it.
-async def error(ctx, e, expected):
-    if expected:
+# dev signifies that the error is on the developers' fault.
+# Otherwise, the error is a user error.
+async def error(ctx, e, dev = False):
+    if dev:
+        logMsg = f"UNEXPECTED ERROR: {str(e)}"
+        msg = f"```UNEXPECTED ERROR: {str(e)}```\n"
+
+        # Pings all devs in case of a dev error.
+        for user in USER_IDS:
+            msg += f"<@{user}> "
+    else:
         logMsg = f"ERROR: {str(e)}"
         msg = f"```ERROR: {str(e)}```"
-    else:
-        logMsg = f"UNEXPECTED ERROR: {str(e)}"
-        msg = f"```UNEXPECTED ERROR: {str(e)}```\n\n<@{USER_ID}> <@{USER_ID2}>"
 
     a_logger.info(logMsg)
     await ctx.send(msg)
