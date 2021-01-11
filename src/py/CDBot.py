@@ -3,6 +3,7 @@ from discord.ext import commands
 import sys
 import logging
 import datetime
+import traceback
 from PIL import Image, ImageDraw
 import os
 import re
@@ -49,6 +50,7 @@ async def cd(ctx, *cd):
             return
         except Exception as e:
             await error(ctx, e, expected = False)
+            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             return
 
         global fileCount
@@ -139,8 +141,9 @@ async def error(ctx, e, expected):
     else:
         expectedStr = "UNEXPECTED "
 
-    a_logger.info(f"{expectedStr}ERROR: {str(e)}")
-    await ctx.send(f"`{expectedStr}ERROR: {str(e)}`")
+    msg = f"{expectedStr}ERROR: {str(e)}"
+    a_logger.info(msg)
+    await ctx.send(f"`{msg}`")
 
 # Configures the general help embed.
 def helpEmbed():

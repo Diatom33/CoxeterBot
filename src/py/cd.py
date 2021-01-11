@@ -5,6 +5,12 @@ MAX_LEN = 100
 
 from cdError import CDError
 
+# Stores the index of a node, and its position in the string.
+class NodeRef:
+    def __init__(self, index, pos):
+        self.index = index
+        self.pos = pos
+
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
     # Matches every possible node label.
@@ -39,10 +45,10 @@ class CD:
         cd = self.string
 
         nodes = [] # The nodes in the final graph.
-        prevNode = None # Most recently read node.
-        prevEdge = 0 # Most recently read edge label.
-        prevSpace = False # Does a space separate the last two nodes?
+        edges = [] # The node pairs to link in the final graph.
 
+        prevNodeRef = None # Most recently read node.
+        edgeLabel = None # Most recently read edge label.
         readingNode = True # Are we reading a node (or an edge)?
 
         # Reads through string.
@@ -50,6 +56,7 @@ class CD:
             # Skips spaces.
             if cd[self.index] == " ":
                 readingNode = True
+                edgeLabel = None
 
             # Skips hyphens in the middle of the string.
             elif cd[self.index] == "-":
@@ -57,23 +64,39 @@ class CD:
 
             # Reads virtual node
             elif cd[self.index] == "*":
+                if not readingNode:
+                    self.error("Expected edge label, got virtual node instead.")
+
                 self.index += 1
+                hyphen = False
+
+                # Hyphen.
+                if self.index < len(cd) and cd[self.index] == '-':
+                    hyphen = True
+                    self.index += 1
 
                 # Declares the node index.
                 if self.index < len(cd):
                     nodeIndex = ord(cd[self.index]) - ord('a')
                 else:
-                    self.error("Lowercase letter expected.")
+                    self.error("Lowercase letter expected before string end.")
 
                 # Checks that the node index is valid.
                 if nodeIndex < 0 or nodeIndex >= 26:
                     self.error("Virtual node not a lowercase letter.")
-                if nodeIndex >= len(nodes):
-                    self.error("Node index out of range.")
+
+                # Puts a minus sign if necessary.
+                if hyphen:
+                    nodeIndex = -(nodeIndex + 1)
+
+                newNodeRef = NodeRef(nodeIndex, self.index)
 
                 # Toggles the flag to link stuff.
-                newNode = nodes[nodeIndex]
                 linkNodes = True
+
+            # Does lacing stuff.
+            elif cd[self.index] == "&":
+                self.error("Laces not yet supported.")
 
             # Node values
             elif readingNode:
@@ -83,41 +106,59 @@ class CD:
                 if not re.findall(CD.nodeLabels, cd[self.index]):
                     self.error(f"Invalid node symbol {cd[self.index]}")
 
-                newNode = Node(cd[self.index])
-                nodes.append(newNode)
+                newNodeRef = NodeRef(len(nodes), self.index)
+                nodes.append(Node(cd[self.index]))
 
                 # Toggles the flag to link stuff.
                 linkNodes = True
 
-                readingNode = False
-
             # Edge values
             else:
-                if prevNode is None:
-                    self.error("Node expected before edge.")
-
-                prevEdge = self.readNumber()
-                if prevEdge is None:
+                edgeLabel = self.readNumber()
+                if edgeLabel is None:
                     self.error(f"Invalid edge symbol {cd[self.index]}")
 
                 readingNode = True
 
             # Links two nodes if necessary.
             if linkNodes:
-                if not (prevNode is None or prevEdge is None):
-                    try:
-                        prevNode.linkTo(newNode, prevEdge)
-                    except CDError as e:
-                        self.error(str(e))
+                if not (prevNodeRef is None or edgeLabel is None):
+                    edges.append({
+                        0: newNodeRef,
+                        1: prevNodeRef,
+                        "label": edgeLabel,
+                    })
 
                 # Updates variables.
                 linkNodes = False
-                prevNode = newNode
-                prevEdge = None
+                prevNodeRef = newNodeRef
+                edgeLabel = None
+                readingNode = False
 
             self.index += 1
 
-        if prevEdge is None:
+        # Links corresponding nodes.
+        for edge in edges:
+            # Checks if nodes in range.
+            for i in range(2):
+                # Configures where the error will appear.
+                self.index = edge[i].pos
+
+                index = edge[i].index
+                if index >= len(nodes) or index < -len(nodes):
+                    self.error("Virtual node index out of range")
+
+            # Attempts to link each pair.
+            try:
+                # Configures where the error will appear.
+                self.index = max(edge[0].pos, edge[1].pos)
+
+                nodes[edge[0].index].linkTo(nodes[edge[1].index], edge["label"])
+            except CDError as e:
+                self.error(str(e))
+
+        # Returns the graph.
+        if not readingNode:
             return Graph(nodes)
         else:
             self.error("Node expected before string end.")
