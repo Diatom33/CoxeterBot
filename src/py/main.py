@@ -10,7 +10,9 @@ import re
 from cd import CD
 from cdError import CDError
 from draw import Draw
-import pywikibot
+from mwclient import Site
+from mwclient.page import Page
+from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
@@ -18,9 +20,11 @@ POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
 
-# Configures pywikibot.
-pywikibot.config2.register_family_file('polytopewiki', 'polytopewiki_family.py')
-WIKI_SITE = pywikibot.Site('en', 'polytopewiki')
+# Configures mwclient.
+USER_AGENT = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
+WIKI_SITE = Site('polytope.miraheze.org')
+WIKI_SITE.login('OfficialURL@CoxeterBot', 'secret :unknown:')
+MAX_REDIRECTS = 5
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
@@ -185,28 +189,25 @@ async def wiki(ctx, *title):
 
         # Tries to load the page.
         try:
-            page = pywikibot.Page(WIKI_SITE, title)
-            exists = page.exists()
+            page = Page(WIKI_SITE, title)
 
             # If the page exists, go through the entire redirect chain.
-            if exists:
-                try:
-                    page = page.getRedirectTarget()
-                # The page is not a redirect page.
-                except pywikibot.exceptions.IsNotRedirectPage:
-                    pass
-                # The redirect target does not exist.
-                except pywikibot.exceptions.NoPage:
-                    exists = False
-                # Circular chain of redirects.
-                except pywikibot.exceptions.CircularRedirect as e:
-                    await error(ctx, "Page is a circular redirect.", dev = False)
-                    return
-
+            if page.exists:
+                redirectNumber = 0
+                redirect = page.resolve_redirect()
+                while page != redirect and page.exists:
+                    page = redirect
+                    redirect = page.resolve_redirect()
+                    
+                    redirectNumber += 1
+                    if redirectNumber > MAX_REDIRECTS:
+                        await error(ctx, f"Cyclic redirect chain.")
+                        return
+                        
             # Formats and posts the URL.
-            newTitle = page.title()
-            if exists:
-                url = page.full_url()
+            newTitle = page.name
+            if page.exists:
+                url = POLYTOPE_WIKI + newTitle.translate({32: '_'})
                 
                 if title == newTitle:
                     await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
@@ -219,15 +220,15 @@ async def wiki(ctx, *title):
                     await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
        
         # Title contains non-standard characters.
-        except pywikibot.exceptions.InvalidTitle as e:
+        except InvalidPageTitle as e:
             await error(ctx, str(e), dev = False)
             return
-            
+
         # Any other unforeseen exception.
         except Exception as e:
-            await error(ctx, str(e), dev = True)
-            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-            return
+           await error(ctx, str(e), dev = False)
+           a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+           return
 
 # Creates a wiki redirect.
 @client.command()
