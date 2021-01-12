@@ -239,6 +239,8 @@ def titleToURL(title):
 @client.command()
 @commands.has_role('Wiki Contributor')
 async def redirect(ctx, *args):
+    a_logger.info(f"COMMAND: redirect {args}")
+    
     if len(args) < 2:
         await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
         return
@@ -248,8 +250,14 @@ async def redirect(ctx, *args):
 
     confirm = True # We need a confirmation screen!
 
-    if not originPage.exists and redirectPage.exists and confirm:
-        originPage.edit(f"#REDIRECT [[{args[1]}]]")
+    if originPage.exists:
+        await error(ctx, f"Page {originPage.name} already exists.")
+        return
+    if not redirectPage.exists:        
+        await error(ctx, f"Page {redirectPage.name} does not exist.")
+        return
+    if confirm:        
+        originPage.edit(f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
         await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
 
 # Gets the bot invite link.
