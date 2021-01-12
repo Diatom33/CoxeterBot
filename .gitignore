@@ -2,7 +2,7 @@ __pycache__
 apicache-py3
 pywikibot.lwp
 throttle.ctrl
-logs/*
+logs/log*
 .vscode
 TOKEN.txt
 WIKI_PW.txt
