@@ -248,6 +248,12 @@ async def redirect(ctx, *args):
     originPage = Page(WIKI_SITE, args[0])
     redirectPage = Page(WIKI_SITE, args[1])
 
+    msg = await client.wait_for('message', check = 
+        lambda message: message.author == ctx.author and (message.content == 'confirm' or message.content == 'cancel')
+    )
+    
+    confirm = (msg.content == 'confirm')
+
     if originPage.exists:
         await error(ctx, f"Page {originPage.name} already exists.")
         return
