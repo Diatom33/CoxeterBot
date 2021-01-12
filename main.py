@@ -260,6 +260,12 @@ async def redirect(ctx, *args):
 
     redirectNewTitle = redirectPage.name
 
+    # Checks for the specific situation where you want to redirect A to B,
+    # but A doesn't exist and B redirects to A.
+    if originTitle == redirectNewTitle:
+        await error (ctx, f"Page {redirectTitle} redirects to {redirectNewTitle}, which is the same as the origin page.", dev = False)
+        return
+
     # Checks that the origin page exists, and the redirect doesn't.
     if originPage.exists:
         await error(ctx, f"Page {originPage.name} already exists.")
@@ -277,15 +283,15 @@ async def redirect(ctx, *args):
     # Waits for either a confirm or cancel message.
     try:
         msg = await client.wait_for('message', check =
-            lambda message: message.author == ctx.author and (message.content == 'confirm' or message.content == 'cancel'),
-            timeout = 20
+            lambda message: message.author == ctx.author and (message.content.lower() == 'confirm' or message.content.lower() == 'cancel'),
+            timeout = 30
         )
     except TimeoutError as e:
         await error(ctx, "Redirect timed out.", dev = False)
         return
 
     # Creates the redirect if the user says yes.
-    if msg.content == 'confirm':
+    if msg.content.lower() == 'confirm':
         Wiki.redirect(originPage, redirectPage)
         await ctx.send(f"Redirected {Wiki.titleToURL(originTitle)} to {Wiki.titleToURL(redirectNewTitle)}.")
     else:
