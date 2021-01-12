@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 from src.py.node import Node, Graph
-from src.py.cdError import CDError
+from src.py.exceptions import CDError
 import math
 import os
 

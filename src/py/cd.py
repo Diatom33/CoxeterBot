@@ -2,7 +2,7 @@ import re
 from src.py.node import Node, Graph
 import sys
 import math
-from src.py.cdError import CDError
+from src.py.exceptions import CDError
 
 MAX_LEN = 100 # Hardcoded node limit.
 

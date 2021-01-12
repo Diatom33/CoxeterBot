@@ -1,36 +1,33 @@
 import discord
 from discord.ext import commands
+
 import sys
 import logging
 import datetime
 import traceback
-from PIL import Image, ImageDraw
 import os
 import re
+from asyncio.exceptions import TimeoutError
+
+from PIL import Image, ImageDraw
+
 from src.py.cd import CD
-from src.py.cdError import CDError
+from src.py.exceptions import CDError, RedirectCycle
 from src.py.draw import Draw
-from mwclient import Site
-from mwclient.page import Page
+from src.py.wiki import Wiki as WikiClass
+
 from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
-POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read()
-WIKI_PW = open("src/txt/WIKI_PW.txt", "r").read()
-
-# Configures mwclient.
-USER_AGENT = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
-WIKI_SITE = Site('polytope.miraheze.org')
-WIKI_SITE.login('OfficialURL@CoxeterBot', WIKI_PW)
-MAX_REDIRECTS = 5
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
             # URL                 # Diatom              # Cirro               # Galoomba
 
+Wiki = WikiClass()
 client = commands.Bot(command_prefix = PREFIX)
 fileCount = 0
 
@@ -59,7 +56,7 @@ cdShortExplanation = (
 )
 wikiShortExplanation = (
     "Searches for a given article within the "
-    f"[Polytope Wiki]({POLYTOPE_WIKI})."
+    f"[Polytope Wiki]({Wiki.fullURL})."
 )
 inviteShortExplanation = f"Posts the bot [invite link]({INVITE_LINK})."
 
@@ -191,39 +188,17 @@ async def wiki(ctx, *title):
 
     # Tries to load the page.
     try:
-        page = Page(WIKI_SITE, title)
-
-        # If the page exists, go through the entire redirect chain.
-        if page.exists:
-            redirectNumber = 0
-            redirect = page.resolve_redirect()
-            while page != redirect and page.exists:
-                page = redirect
-                redirect = page.resolve_redirect()
-
-                redirectNumber += 1
-                if redirectNumber > MAX_REDIRECTS:
-                    await error(ctx, f"Cyclic redirect chain.")
-                    return
-
-        # Formats and posts the URL.
-        newTitle = page.name
-        if page.exists:
-            url = titleToURL(newTitle)
-
-            if title == newTitle:
-                await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
-            else:
-                await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
-        else:
-            if title == newTitle:
-                await error(ctx, f"The requested page {title} does not exist.", dev = False)
-            else:
-                await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
+        page = Wiki.Page(title)
+        page = Wiki.resolveRedirect(page)
 
     # Title contains non-standard characters.
     except InvalidPageTitle as e:
         await error(ctx, str(e), dev = False)
+        return
+
+    # Redirect chain found.
+    except RedirectCycle as e:
+        await error(ctx, str(e))
         return
 
     # Any other unforeseen exception.
@@ -232,8 +207,20 @@ async def wiki(ctx, *title):
        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
        return
 
-def titleToURL(title):
-    return POLYTOPE_WIKI + title.translate({32: '_'})
+    # Formats and posts the URL.
+    newTitle = page.name
+    if page.exists:
+        url = Wiki.titleToURL(newTitle)
+
+        if title == newTitle:
+            await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
+        else:
+            await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
+    else:
+        if title == newTitle:
+            await error(ctx, f"The requested page {title} does not exist.", dev = False)
+        else:
+            await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
 
 # Creates a wiki redirect.
 @client.command()
@@ -241,30 +228,56 @@ def titleToURL(title):
 async def redirect(ctx, *args):
     a_logger.info(f"COMMAND: redirect {args}")
 
+    # Shows command help.
     if len(args) < 2:
-        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
+        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.", dev = False)
+        return
+    elif len(args) > 2:
+        await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
         return
 
-    originPage = Page(WIKI_SITE, args[0])
-    redirectPage = Page(WIKI_SITE, args[1])
+    originPage = Wiki.Page(args[0])
+    originTitle = originPage.name
 
-    await ctx.send(f"Are you sure you want to redirect \"{originPage.name}\" to \"{redirectPage.name}\"?\nType `confirm/cancel`.")
+    # TODO: CHECK RedirectCycle
+    redirectPage = Wiki.Page(args[1])
+    redirectTitle = redirectPage.name
 
-    msg = await client.wait_for('message', check =
-        lambda message: message.author == ctx.author and (message.content == 'confirm' or message.content == 'cancel')
-    )
+    try:
+        redirectPage = Wiki.resolveRedirect(Wiki.Page(args[1]))
+    except RedirectCycle as e:
+        await error(ctx, str(e), dev = False)
 
-    confirm = (msg.content == 'confirm')
+    redirectNewTitle = redirectPage.name
 
+    # Checks that the origin page exists, and the redirect doesn't.
     if originPage.exists:
         await error(ctx, f"Page {originPage.name} already exists.")
         return
     if not redirectPage.exists:
         await error(ctx, f"Page {redirectPage.name} does not exist.")
         return
-    if confirm:
-        originPage.edit(f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
-        await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
+
+    # Sends confirmation message.
+    if redirectTitle == redirectNewTitle:
+        await ctx.send(f"Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
+    else:
+        await ctx.send(f"Page **{redirectTitle}** redirects to **{redirectNewTitle}**. Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
+
+    # Waits for either a confirm or cancel message.
+    try:
+        msg = await client.wait_for('message', check =
+            lambda message: message.author == ctx.author and (message.content == 'confirm' or message.content == 'cancel'),
+            timeout = 20
+        )
+    except TimeoutError as e:
+        await error(ctx, "Redirect timed out.", dev = False)
+        return
+
+    # Creates the redirect if the user says yes.
+    if msg.content == 'confirm':
+        Wiki.redirect(originPage, redirectPage)
+        await ctx.send(f"Redirected {Wiki.titleToURL(originTitle)} to {Wiki.titleToURL(redirectNewTitle)}.")
     else:
         await ctx.send("Redirect cancelled.")
 
@@ -320,7 +333,7 @@ async def error(ctx, text, dev = False):
 
         # Pings all devs in case of a dev error.
         for user in USER_IDS:
-            msg += f"<@{user}> "
+            msg += f"<@{user}>\n"
     else:
         logMsg = f"ERROR: {text}"
         msg = f"```ERROR: {text}```"
