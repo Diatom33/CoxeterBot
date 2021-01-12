@@ -10,11 +10,18 @@ import re
 from cd import CD
 from cdError import CDError
 from draw import Draw
+import pywikibot
 
+# Basic constants.
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
 POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
+
+# Configures pywikibot.
+pywikibot.config2.register_family_file('polytopewiki', 'polytopewiki_family.py')
+WIKI_SITE = pywikibot.Site('en', 'polytopewiki')
+
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
             # URL                 # Diatom              # Cirro               # Galoomba
@@ -54,9 +61,10 @@ inviteShortExplanation = f"Posts the bot [invite link]({INVITE_LINK})."
 @client.command(pass_context = True)
 async def help(ctx, *args):
     args = ' '.join(args)
+    a_logger.info(f"COMMAND: help {args}")
 
+    # Configures the main help embed.
     if args == '':
-        # Configures the help embed.
         helpEmbed = discord.Embed(
             colour = discord.Colour.blue(),
             title = "Coxeter Bot Help"
@@ -87,6 +95,7 @@ async def help(ctx, *args):
         )
 
         await ctx.send(embed = helpEmbed)
+    # The ?help help embed.
     elif args == 'help':
         await ctx.send(embed = commandHelpEmbed(
             command = args,
@@ -96,6 +105,7 @@ async def help(ctx, *args):
                 f"`{PREFIX}help cd`: Shows help for the `cd` command."
             )
         ))
+    # The ?help cd embed.
     elif args == 'cd':
         await ctx.send(embed = commandHelpEmbed(
             command = args,
@@ -107,6 +117,7 @@ async def help(ctx, *args):
                 f"`{PREFIX}cd *-c3x3x3x o3o3o3o3o`: A branching diagram."
             )
         ))
+    # The ?help wiki embed.
     elif args == 'wiki':
         await ctx.send(embed = commandHelpEmbed(
             command = args,
@@ -116,6 +127,7 @@ async def help(ctx, *args):
                 f"`{PREFIX}wiki cube`: Searches for a cube."
             )
         ))
+    # The ?help invite embed.
     elif args == 'invite':
         await ctx.send(embed = commandHelpEmbed(
             command = args,
@@ -126,8 +138,6 @@ async def help(ctx, *args):
         ))
     else:
         await ctx.send(f"Command `{args}` not recognized.")
-
-    a_logger.info(f"COMMAND: help {args}")
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
@@ -169,9 +179,19 @@ async def wiki(ctx, *args):
     if args == '':
         await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
     else:
+        a_logger.info(f"COMMAND: wiki {args}")
         args = args[0].capitalize() + args[1:]
-        a_logger.info("COMMAND: wiki")
-        await ctx.send(f"{POLYTOPE_WIKI}{args}")
+
+        try:
+            page = pywikibot.Page(WIKI_SITE, args)
+            if page.exists():
+                await ctx.send(f"{POLYTOPE_WIKI}{args}")
+            else:
+                await ctx.send("The requested page does not exist.")
+        except Exception as e:
+            await error(ctx, e, dev = True)
+            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+            return
 
 # Creates a wiki redirect.
 @client.command()
@@ -205,7 +225,13 @@ async def prefix(ctx, *newPrefix):
     global PREFIX
     PREFIX = newPrefix
     client.command_prefix = PREFIX
-    open("../txt/PREFIX.TXT", "w").write(PREFIX)
+
+    try:
+        open("../txt/PREFIX.TXT", "w").write(PREFIX)
+    except Exception as e:
+        await error(ctx, e, dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+        return
 
     a_logger.info(f"INFO: prefix changed to {newPrefix}")
     await ctx.send(f"Prefix changed to {PREFIX}")

@@ -1,3 +1,6 @@
 __pycache__ 
+apicache-py3
+pywikibot.lwp
+throttle.ctrl
 logs
 TOKEN.txt
