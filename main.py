@@ -248,10 +248,12 @@ async def redirect(ctx, *args):
     originPage = Page(WIKI_SITE, args[0])
     redirectPage = Page(WIKI_SITE, args[1])
 
-    msg = await client.wait_for('message', check = 
+    await ctx.send(f"Are you sure you want to redirect \"{originPage.name}\" to \"{redirectPage.name}\"?\nType `confirm/cancel`.")
+
+    msg = await client.wait_for('message', check =
         lambda message: message.author == ctx.author and (message.content == 'confirm' or message.content == 'cancel')
     )
-    
+
     confirm = (msg.content == 'confirm')
 
     if originPage.exists:
@@ -263,6 +265,8 @@ async def redirect(ctx, *args):
     if confirm:
         originPage.edit(f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
         await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
+    else:
+        await ctx.send("Redirect cancelled.")
 
 # Gets the bot invite link.
 @client.command()
@@ -335,6 +339,12 @@ def commandHelpEmbed(command, shortExplanation, examples):
     embed.add_field(name = "Examples", value = examples, inline = False)
 
     return embed
+
+# Create log folder.
+try:
+    os.mkdir("logs")
+except FileExistsError:
+    pass
 
 # Configures logger.
 a_logger = logging.getLogger()
