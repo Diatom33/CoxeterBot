@@ -38,7 +38,7 @@ class Wiki:
 
             redirectList.append(page)
             redirectListNames.append(page.name)
-            print(page.name)
+
             page = page.redirects_to()
 
         if page is None:

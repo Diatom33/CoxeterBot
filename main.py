@@ -19,7 +19,6 @@ from src.py.wiki import Wiki as WikiClass
 from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
-INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read()
 
@@ -27,6 +26,10 @@ PREFIX = open("src/txt/PREFIX.txt", "r").read()
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
             # URL                 # Diatom              # Cirro               # Galoomba
 
+# ID of Wiki Contributor role.
+ROLE_ID = "<@&699404888127569981>"
+
+# General config.
 Wiki = WikiClass()
 client = commands.Bot(command_prefix = PREFIX)
 fileCount = 0
@@ -56,9 +59,13 @@ cdShortExplanation = (
 )
 wikiShortExplanation = (
     "Searches for a given article within the "
-    f"[Polytope Wiki]({Wiki.fullURL})."
+    f"[Polytope Wiki]({Wiki.fullURL}). Resolves redirects automatically."
 )
-inviteShortExplanation = f"Posts the bot [invite link]({INVITE_LINK})."
+redirectShortExplanation = (
+    "Automatically creates a redirect between two articles on the "
+    f"[Polytope Wiki]({Wiki.fullURL}). Resolves existing redirects automatically. "
+    f"Can only be used by {ROLE_ID}."
+)
 
 @client.command(pass_context = True)
 async def help(ctx, *command):
@@ -91,8 +98,8 @@ async def help(ctx, *command):
         )
 
         helpEmbed.add_field(
-            name = f"`{PREFIX}invite`",
-            value = inviteShortExplanation,
+            name = f"`{PREFIX}redirect [origin] [target]`",
+            value = redirectShortExplanation,
             inline = False
         )
 
@@ -125,17 +132,19 @@ async def help(ctx, *command):
             command = command,
             shortExplanation = wikiShortExplanation,
             examples = (
-                f"`{PREFIX}wiki x3o3o`: Searches for the tetrahedron.\n"
-                f"`{PREFIX}wiki cube`: Searches for a cube."
+                f"`{PREFIX}wiki cube`: Links to the **Cube** article.\n"
+                f"`{PREFIX}wiki x3o3o`: Links to the **Tetrahedron** article."
             )
         ))
-    # The ?help invite embed.
-    elif command == 'invite':
+    # The ?help redirect embed.
+    elif command == 'redirect':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = inviteShortExplanation,
+            shortExplanation = redirectShortExplanation,
             examples = (
-                f"`{PREFIX}invite`"
+                f"`{PREFIX}redirect x3o3o tetrahedron`: Redirects the **X3o3o** article to **Tetrahedron**.\n"
+                f"`{PREFIX}redirect x3o5o ike`: Redirects the **X3o5o** article to **Icosahedron**.\n"
+                f"`{PREFIX}redirect squat \"square tiling\"`: Redirects the **Squat** article to **Square tiling**."
             )
         ))
     else:
@@ -229,8 +238,11 @@ async def redirect(ctx, *args):
     a_logger.info(f"COMMAND: redirect {args}")
 
     # Shows command help.
-    if len(args) < 2:
-        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.", dev = False)
+    if len(args) == 0:
+        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
+        return
+    elif len(args) == 1:
+        await error(ctx, f"2 arguments expected, got 1.", dev = False)
         return
     elif len(args) > 2:
         await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
@@ -238,8 +250,6 @@ async def redirect(ctx, *args):
 
     originPage = Wiki.Page(args[0])
     originTitle = originPage.name
-
-    # TODO: CHECK RedirectCycle
     redirectPage = Wiki.Page(args[1])
     redirectTitle = redirectPage.name
 
@@ -281,15 +291,10 @@ async def redirect(ctx, *args):
     else:
         await ctx.send("Redirect cancelled.")
 
-# Gets the bot invite link.
-@client.command()
-async def invite(ctx):
-    a_logger.info("COMMAND: invite")
-    await ctx.send(INVITE_LINK)
-
 # Dev command, shows the client latency.
 @client.command()
 async def ping(ctx):
+    await ctx.send(" test!")
     a_logger.info(f"COMMAND: ping")
 
     latency = round(client.latency * 1000)
