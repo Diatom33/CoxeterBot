@@ -1,8 +1,8 @@
 import re
-from node import Node, Graph
+from src.py.node import Node, Graph
 import sys
 import math
-from cdError import CDError
+from src.py.cdError import CDError
 
 MAX_LEN = 100 # Hardcoded node limit.
 

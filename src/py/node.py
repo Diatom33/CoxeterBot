@@ -1,6 +1,6 @@
 import re
 import math
-from cdError import CDError
+from src.py.cdError import CDError
 
 # Nodes in a CD.
 class Node:

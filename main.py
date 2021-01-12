@@ -7,9 +7,9 @@ import traceback
 from PIL import Image, ImageDraw
 import os
 import re
-from cd import CD
-from cdError import CDError
-from draw import Draw
+from src.py.cd import CD
+from src.py.cdError import CDError
+from src.py.draw import Draw
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import InvalidPageTitle
@@ -17,9 +17,9 @@ from mwclient.errors import InvalidPageTitle
 # Basic constants.
 INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=795909275880259604&permissions=34816&scope=bot"
 POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
-TOKEN = open("../txt/TOKEN.txt", "r").read()
-PREFIX = open("../txt/PREFIX.txt", "r").read()
-WIKI_PW = open("../txt/WIKI_PW.txt", "r").read()
+TOKEN = open("src/txt/TOKEN.txt", "r").read()
+PREFIX = open("src/txt/PREFIX.txt", "r").read()
+WIKI_PW = open("src/txt/WIKI_PW.txt", "r").read()
 
 # Configures mwclient.
 USER_AGENT = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
@@ -240,7 +240,7 @@ def titleToURL(title):
 @commands.has_role('Wiki Contributor')
 async def redirect(ctx, *args):
     a_logger.info(f"COMMAND: redirect {args}")
-    
+
     if len(args) < 2:
         await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
         return
@@ -248,15 +248,13 @@ async def redirect(ctx, *args):
     originPage = Page(WIKI_SITE, args[0])
     redirectPage = Page(WIKI_SITE, args[1])
 
-    confirm = True # We need a confirmation screen!
-
     if originPage.exists:
         await error(ctx, f"Page {originPage.name} already exists.")
         return
-    if not redirectPage.exists:        
+    if not redirectPage.exists:
         await error(ctx, f"Page {redirectPage.name} does not exist.")
         return
-    if confirm:        
+    if confirm:
         originPage.edit(f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
         await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
 
@@ -335,7 +333,7 @@ def commandHelpEmbed(command, shortExplanation, examples):
 # Configures logger.
 a_logger = logging.getLogger()
 a_logger.setLevel(logging.INFO)
-output_file_handler = logging.FileHandler("../../logs/log " +
+output_file_handler = logging.FileHandler("logs/log " +
     datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".txt", 'w', 'utf-8')
 stdout_handler = logging.StreamHandler(sys.stdout)
 a_logger.addHandler(output_file_handler)
