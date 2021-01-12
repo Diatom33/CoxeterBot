@@ -299,16 +299,16 @@ async def redirect(ctx, *args):
 
 # Creates a wiki redirect.
 @client.command()
-async def search(ctx, *search):
-    search = ' '.join(search)
+async def search(ctx, *key):
+    key = ' '.join(key)
     resultNumber = 0
     
     embed = discord.Embed(
         colour = discord.Colour.blue(),
-        title = f"Search Results for: {search}"
+        title = f"Search Results for: {key}"
     )
     
-    for result in sorted(Wiki.Site.search(search), key = lambda res: len(res.get('title'))):
+    for result in Wiki.search(key):
         resultNumber += 1
         title = result.get('title')
         embed.add_field(
@@ -321,7 +321,7 @@ async def search(ctx, *search):
             break
     
     if resultNumber == 0:
-        await ctx.send(f"No results found for **{search}**.")
+        await ctx.send(f"No results found for **{key}**.")
     else:
         await ctx.send(embed = embed)
 

@@ -12,15 +12,22 @@ class Wiki:
         self.URL = "polytope.miraheze.org/"
         self.fullURL = 'https://' + self.URL + 'wiki/'
 
-        self.Site = Site(self.URL, clients_useragent = self.userAgent)
+        self.site = Site(self.URL, clients_useragent = self.userAgent)
 
-        self.Site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
+        self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
     def Page(self, title):
-        return Page(self.Site, title)
+        return Page(self.site, title)
 
     def pageURL(self, page):
         return self.titleToURL(page.name)
+        
+    def search(self, key):
+        def sortFun(x):
+            x = x.get('title')
+            return (len(x), x)
+            
+        return sorted(self.site.search(search = key), key = sortFun)
         
     def titleToURL(self, title):
         return self.fullURL + title.translate({32: '_'})
