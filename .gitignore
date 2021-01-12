@@ -3,5 +3,6 @@ apicache-py3
 pywikibot.lwp
 throttle.ctrl
 logs
+.vscode
 TOKEN.txt
 WIKI_PW.txt
