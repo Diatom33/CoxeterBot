@@ -257,7 +257,7 @@ async def redirect(ctx, *args):
         await error(ctx, f"Page {redirectPage.name} does not exist.")
         return
     if confirm:        
-        originPage.edit(title = f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
+        originPage.edit(f"#REDIRECT [[{args[1]}]]", minor = False, bot = True, section = None)
         await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
 
 # Gets the bot invite link.
