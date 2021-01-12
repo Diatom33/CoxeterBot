@@ -297,10 +297,37 @@ async def redirect(ctx, *args):
     else:
         await ctx.send("Redirect cancelled.")
 
+# Creates a wiki redirect.
+@client.command()
+async def search(ctx, *search):
+    search = ' '.join(search)
+    resultNumber = 0
+    
+    embed = discord.Embed(
+        colour = discord.Colour.blue(),
+        title = f"Search Results for: {search}"
+    )
+    
+    for result in sorted(Wiki.Site.search(search), key = lambda res: len(res.get('title'))):
+        resultNumber += 1
+        title = result.get('title')
+        embed.add_field(
+            name = f'Result {resultNumber}:',
+            value = f"[{title}]({Wiki.titleToURL(title)})",
+            inline = False
+        )
+        
+        if resultNumber == 10:
+            break
+    
+    if resultNumber == 0:
+        await ctx.send(f"No results found for **{search}**.")
+    else:
+        await ctx.send(embed = embed)
+
 # Dev command, shows the client latency.
 @client.command()
 async def ping(ctx):
-    await ctx.send(" test!")
     a_logger.info(f"COMMAND: ping")
 
     latency = round(client.latency * 1000)

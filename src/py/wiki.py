@@ -19,6 +19,9 @@ class Wiki:
     def Page(self, title):
         return Page(self.Site, title)
 
+    def pageURL(self, page):
+        return self.titleToURL(page.name)
+        
     def titleToURL(self, title):
         return self.fullURL + title.translate({32: '_'})
 
