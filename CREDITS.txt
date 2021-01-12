@@ -1,2 +1,1 @@
 Uses Lora by the Lora Project Authors, published under the SIL Open Font License 1.1.
-Uses mwclient, published by Bryan Tong Minh, Dan Michael O. Heggø and contributors under the MIT License.
