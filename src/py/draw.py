@@ -2,6 +2,7 @@ from PIL import Image, ImageDraw, ImageFont
 from node import Node, Graph
 from cdError import CDError
 import math
+import os
 
 # Constants:
 SCALE = 0.8
@@ -21,15 +22,17 @@ TEXT_DISTANCE = 20
 ELLIPSIS_RADIUS = 3
 
 FONT_NAME = "Lora-Regular"
+FONT_FILENAME = f"../ttf/{FONT_NAME}.ttf"
 FONT_OUTLINE = 2
 
 EDGE_FONT_SIZE = 24
 NODE_FONT_SIZE = 18
 HOLOSNUB_FONT_SIZE = 36
 
-EDGE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
-NODE_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", NODE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
-HOLOSNUB_FONT = ImageFont.truetype(f"../ttf/{FONT_NAME}.ttf", HOLOSNUB_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+print(os.path.abspath(FONT_FILENAME))
+EDGE_FONT = ImageFont.truetype(FONT_FILENAME, EDGE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+NODE_FONT = ImageFont.truetype(FONT_FILENAME, NODE_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
+HOLOSNUB_FONT = ImageFont.truetype(FONT_FILENAME, HOLOSNUB_FONT_SIZE, layout_engine = ImageFont.LAYOUT_BASIC)
 
 PADDING = 40
 
