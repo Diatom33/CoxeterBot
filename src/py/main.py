@@ -59,12 +59,12 @@ wikiShortExplanation = (
 inviteShortExplanation = f"Posts the bot [invite link]({INVITE_LINK})."
 
 @client.command(pass_context = True)
-async def help(ctx, *args):
-    args = ' '.join(args)
-    a_logger.info(f"COMMAND: help {args}")
+async def help(ctx, *command):
+    command = ' '.join(command)
+    a_logger.info(f"COMMAND: help {command}")
 
     # Configures the main help embed.
-    if args == '':
+    if command == '':
         helpEmbed = discord.Embed(
             colour = discord.Colour.blue(),
             title = "Coxeter Bot Help"
@@ -96,9 +96,9 @@ async def help(ctx, *args):
 
         await ctx.send(embed = helpEmbed)
     # The ?help help embed.
-    elif args == 'help':
+    elif command == 'help':
         await ctx.send(embed = commandHelpEmbed(
-            command = args,
+            command = command,
             shortExplanation = helpShortExplanation,
             examples = (
                 f"`{PREFIX}help help`: Shows this embed.\n"
@@ -106,9 +106,9 @@ async def help(ctx, *args):
             )
         ))
     # The ?help cd embed.
-    elif args == 'cd':
+    elif command == 'cd':
         await ctx.send(embed = commandHelpEmbed(
-            command = args,
+            command = command,
             shortExplanation = wikiShortExplanation,
             examples = (
                 f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
@@ -118,9 +118,9 @@ async def help(ctx, *args):
             )
         ))
     # The ?help wiki embed.
-    elif args == 'wiki':
+    elif command == 'wiki':
         await ctx.send(embed = commandHelpEmbed(
-            command = args,
+            command = command,
             shortExplanation = wikiShortExplanation,
             examples = (
                 f"`{PREFIX}wiki x3o3o`: Searches for the tetrahedron.\n"
@@ -128,16 +128,16 @@ async def help(ctx, *args):
             )
         ))
     # The ?help invite embed.
-    elif args == 'invite':
+    elif command == 'invite':
         await ctx.send(embed = commandHelpEmbed(
-            command = args,
+            command = command,
             shortExplanation = inviteShortExplanation,
             examples = (
                 f"`{PREFIX}invite`"
             )
         ))
     else:
-        await ctx.send(f"Command `{args}` not recognized.")
+        await ctx.send(f"Command `{command}` not recognized.")
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
@@ -153,10 +153,10 @@ async def cd(ctx, *cd):
         try:
             temp = Draw(CD(cd).toGraph()).draw()
         except CDError as e:
-            await error(ctx, e, dev = False)
+            await error(ctx, str(e), dev = False)
             return
         except Exception as e:
-            await error(ctx, e, dev = True)
+            await error(ctx, str(e), dev = True)
             a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             return
 
@@ -173,23 +173,59 @@ async def cd(ctx, *cd):
 
 # Posts the link to a wiki article.
 @client.command()
-async def wiki(ctx, *args):
-    args = ' '.join(args).translate({32: '_'})
+async def wiki(ctx, *title):
+    title = ' '.join(title)
 
-    if args == '':
+    # Displays help.
+    if title == '':
         await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
     else:
-        a_logger.info(f"COMMAND: wiki {args}")
-        args = args[0].capitalize() + args[1:]
+        a_logger.info(f"COMMAND: wiki {title}")
+        title = title[0].capitalize() + title[1:]
 
+        # Tries to load the page.
         try:
-            page = pywikibot.Page(WIKI_SITE, args)
-            if page.exists():
-                await ctx.send(f"{POLYTOPE_WIKI}{args}")
+            page = pywikibot.Page(WIKI_SITE, title)
+            exists = page.exists()
+
+            # If the page exists, go through the entire redirect chain.
+            if exists:
+                try:
+                    page = page.getRedirectTarget()
+                # The page is not a redirect page.
+                except pywikibot.exceptions.IsNotRedirectPage:
+                    pass
+                # The redirect target does not exist.
+                except pywikibot.exceptions.NoPage:
+                    exists = False
+                # Circular chain of redirects.
+                except pywikibot.exceptions.CircularRedirect as e:
+                    await error(ctx, "Page is a circular redirect.", dev = False)
+                    return
+
+            # Formats and posts the URL.
+            newTitle = page.title()
+            if exists:
+                url = page.full_url()
+                
+                if title == newTitle:
+                    await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
+                else:
+                    await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
             else:
-                await ctx.send("The requested page does not exist.")
+                if title == newTitle:
+                    await error(ctx, f"The requested page {title} does not exist.", dev = False)
+                else:                
+                    await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
+       
+        # Title contains non-standard characters.
+        except pywikibot.exceptions.InvalidTitle as e:
+            await error(ctx, str(e), dev = False)
+            return
+            
+        # Any other unforeseen exception.
         except Exception as e:
-            await error(ctx, e, dev = True)
+            await error(ctx, str(e), dev = True)
             a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             return
 
@@ -229,7 +265,7 @@ async def prefix(ctx, *newPrefix):
     try:
         open("../txt/PREFIX.TXT", "w").write(PREFIX)
     except Exception as e:
-        await error(ctx, e, dev = True)
+        await error(ctx, str(e), dev = True)
         a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
 
@@ -240,22 +276,22 @@ async def prefix(ctx, *newPrefix):
 @commands.has_permissions(administrator = True)
 @client.command()
 async def error(ctx):
-    await error(ctx, Exception("Test error!"), dev = True)
+    await error(ctx, "Test error!", dev = True)
 
 # Logs an error and posts it.
 # dev signifies that the error is on the developers' fault.
 # Otherwise, the error is a user error.
-async def error(ctx, e, dev = False):
+async def error(ctx, text, dev = False):
     if dev:
-        logMsg = f"UNEXPECTED ERROR: {str(e)}"
-        msg = f"```UNEXPECTED ERROR: {str(e)}```\n"
+        logMsg = f"UNEXPECTED ERROR: {text}"
+        msg = f"```UNEXPECTED ERROR: {text}```\n"
 
         # Pings all devs in case of a dev error.
         for user in USER_IDS:
             msg += f"<@{user}> "
     else:
-        logMsg = f"ERROR: {str(e)}"
-        msg = f"```ERROR: {str(e)}```"
+        logMsg = f"ERROR: {text}"
+        msg = f"```ERROR: {text}```"
 
     a_logger.info(logMsg)
     await ctx.send(msg)

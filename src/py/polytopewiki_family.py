@@ -5,6 +5,6 @@ class Family(family.Family):
     langs = {
         'en': 'polytope.miraheze.org',
     }
-    
+
     def protocol(self, code):
         return 'HTTPS'
