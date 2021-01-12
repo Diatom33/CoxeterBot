@@ -19,11 +19,12 @@ INVITE_LINK = "https://discord.com/api/oauth2/authorize?client_id=79590927588025
 POLYTOPE_WIKI = "https://polytope.miraheze.org/wiki/"
 TOKEN = open("../txt/TOKEN.txt", "r").read()
 PREFIX = open("../txt/PREFIX.txt", "r").read()
+WIKI_PW = open("../txt/WIKI_PW.txt", "r").read()
 
 # Configures mwclient.
 USER_AGENT = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
 WIKI_SITE = Site('polytope.miraheze.org')
-WIKI_SITE.login('OfficialURL@CoxeterBot', 'secret :unknown:')
+WIKI_SITE.login('OfficialURL@CoxeterBot', WIKI_PW)
 MAX_REDIRECTS = 5
 
 # Users to ping on unexpected error:
@@ -183,59 +184,73 @@ async def wiki(ctx, *title):
     # Displays help.
     if title == '':
         await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
-    else:
-        a_logger.info(f"COMMAND: wiki {title}")
-        title = title[0].capitalize() + title[1:]
+        return
 
-        # Tries to load the page.
-        try:
-            page = Page(WIKI_SITE, title)
+    a_logger.info(f"COMMAND: wiki {title}")
+    title = title[0].capitalize() + title[1:]
 
-            # If the page exists, go through the entire redirect chain.
-            if page.exists:
-                redirectNumber = 0
+    # Tries to load the page.
+    try:
+        page = Page(WIKI_SITE, title)
+
+        # If the page exists, go through the entire redirect chain.
+        if page.exists:
+            redirectNumber = 0
+            redirect = page.resolve_redirect()
+            while page != redirect and page.exists:
+                page = redirect
                 redirect = page.resolve_redirect()
-                while page != redirect and page.exists:
-                    page = redirect
-                    redirect = page.resolve_redirect()
-                    
-                    redirectNumber += 1
-                    if redirectNumber > MAX_REDIRECTS:
-                        await error(ctx, f"Cyclic redirect chain.")
-                        return
-                        
-            # Formats and posts the URL.
-            newTitle = page.name
-            if page.exists:
-                url = POLYTOPE_WIKI + newTitle.translate({32: '_'})
-                
-                if title == newTitle:
-                    await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
-                else:
-                    await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
-            else:
-                if title == newTitle:
-                    await error(ctx, f"The requested page {title} does not exist.", dev = False)
-                else:                
-                    await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
-       
-        # Title contains non-standard characters.
-        except InvalidPageTitle as e:
-            await error(ctx, str(e), dev = False)
-            return
 
-        # Any other unforeseen exception.
-        except Exception as e:
-           await error(ctx, str(e), dev = False)
-           a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-           return
+                redirectNumber += 1
+                if redirectNumber > MAX_REDIRECTS:
+                    await error(ctx, f"Cyclic redirect chain.")
+                    return
+
+        # Formats and posts the URL.
+        newTitle = page.name
+        if page.exists:
+            url = titleToURL(newTitle)
+
+            if title == newTitle:
+                await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
+            else:
+                await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
+        else:
+            if title == newTitle:
+                await error(ctx, f"The requested page {title} does not exist.", dev = False)
+            else:
+                await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
+
+    # Title contains non-standard characters.
+    except InvalidPageTitle as e:
+        await error(ctx, str(e), dev = False)
+        return
+
+    # Any other unforeseen exception.
+    except Exception as e:
+       await error(ctx, str(e), dev = True)
+       a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+       return
+
+def titleToURL(title):
+    return POLYTOPE_WIKI + title.translate({32: '_'})
 
 # Creates a wiki redirect.
 @client.command()
 @commands.has_role('Wiki Contributor')
 async def redirect(ctx, *args):
-    args = ' '.join(args)
-    await ctx.send(f"`Test! {args}`")
+    if len(args) < 2:
+        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
+        return
+
+    originPage = Page(WIKI_SITE, args[0])
+    redirectPage = Page(WIKI_SITE, args[1])
+
+    confirm = True # We need a confirmation screen!
+
+    if not originPage.exists and redirectPage.exists and confirm:
+        originPage.edit(f"#REDIRECT [[{args[1]}]]")
+        await ctx.send(f"Redirected {titleToURL(args[0])} to {titleToURL(args[1])}.")
 
 # Gets the bot invite link.
 @client.command()
