@@ -15,7 +15,7 @@ from src.py.cd import CD
 from src.py.exceptions import CDError, RedirectCycle, TemplateError
 from src.py.draw import Draw
 from src.py.wiki import Wiki as WikiClass
-
+import src.py.parser as parser
 from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
@@ -187,208 +187,248 @@ async def help(ctx, *command):
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
 async def cd(ctx, *cd):
-    cd = ' '.join(cd)
-    a_logger.info(f"COMMAND: cd {cd}")
+    try:
+        cd = ' '.join(cd)
+        a_logger.info(f"COMMAND: cd {cd}")
 
-    if cd == '':
-        await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
-    elif cd == 'play':
-        await ctx.send(":cd: :play_pause:")
-    else:
-        try:
-            temp = Draw(CD(cd).toGraph()).draw()
-        except CDError as e:
-            await error(ctx, str(e), dev = False)
-            return
-        except Exception as e:
-            await error(ctx, str(e), dev = True)
-            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-            return
+        if cd == '':
+            await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
+        elif cd == 'play':
+            await ctx.send(":cd: :play_pause:")
+        else:
+            try:
+                temp = Draw(CD(cd).toGraph()).draw()
+            except CDError as e:
+                await error(ctx, str(e), dev = False)
+                return
 
-        global fileCount
-        fileName = f"temp{fileCount}.png"
-        fileCount += 1
+            global fileCount
+            fileName = f"temp{fileCount}.png"
+            fileCount += 1
 
-        temp.save(fileName)
-        a_logger.info(f"INFO: Created {fileName} file.")
-        await ctx.send(file = discord.File(fileName))
+            temp.save(fileName)
+            a_logger.info(f"INFO: Created {fileName} file.")
+            await ctx.send(file = discord.File(fileName))
 
-        os.remove(fileName)
-        a_logger.info(f"INFO: Removed {fileName} file.")
+            os.remove(fileName)
+            a_logger.info(f"INFO: Removed {fileName} file.")
+    
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+        return
 
 # Posts the link to a wiki article.
 @client.command()
 async def wiki(ctx, *title):
-    title = ' '.join(title)
-
-    # Displays help.
-    if title == '':
-        await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
-        return
-
-    a_logger.info(f"COMMAND: wiki {title}")
-    title = title[0].capitalize() + title[1:]
-
-    # Tries to load the page.
     try:
-        page = Wiki.Page(title, redirect = True)
+        title = ' '.join(title)
 
-    # Title contains non-standard characters.
-    except InvalidPageTitle as e:
-        await error(ctx, str(e), dev = False)
-        return
+        # Displays help.
+        if title == '':
+            await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
+            return
 
-    # Redirect chain found.
-    except RedirectCycle as e:
-        await error(ctx, str(e))
-        return
+        a_logger.info(f"COMMAND: wiki {title}")
+        title = title[0].capitalize() + title[1:]
 
-    # Any other unforeseen exception.
+        # Tries to load the page.
+        try:
+            page = Wiki.Page(title, redirect = True)
+
+        # Title contains non-standard characters.
+        except InvalidPageTitle as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        # Redirect chain found.
+        except RedirectCycle as e:
+            await error(ctx, str(e))
+            return
+
+        # Formats and posts the URL.
+        newTitle = page.name
+        if page.exists:
+            url = Wiki.titleToURL(newTitle)
+
+            if title == newTitle:
+                await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
+            else:
+                await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
+        else:
+            if title == newTitle:
+                await error(ctx, f"The requested page {title} does not exist.", dev = False)
+            else:
+                await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
+
+    # Unexpected error.
     except Exception as e:
-       await error(ctx, str(e), dev = True)
-       a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-       return
-
-    # Formats and posts the URL.
-    newTitle = page.name
-    if page.exists:
-        url = Wiki.titleToURL(newTitle)
-
-        if title == newTitle:
-            await ctx.send(f"Page **{title}** on Polytope Wiki:\n{url}")
-        else:
-            await ctx.send(f"Page **{title}** redirected to **{newTitle}** on Polytope Wiki:\n{url}")
-    else:
-        if title == newTitle:
-            await error(ctx, f"The requested page {title} does not exist.", dev = False)
-        else:
-            await error(ctx, f"The requested page {title} redirected to {newTitle}, which does not exist.", dev = False)
-
+        await error(ctx, str(e), dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+        return
+       
 # Creates a wiki redirect.
 @client.command()
 @commands.has_role('Wiki Contributor')
 async def redirect(ctx, *args):
-    a_logger.info(f"COMMAND: redirect {args}")
-
-    # Shows command help.
-    if len(args) == 0:
-        await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
-        return
-    elif len(args) == 1:
-        await error(ctx, f"2 arguments expected, got 1.", dev = False)
-        return
-    elif len(args) > 2:
-        await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
-        return
-
-    originPage = Wiki.Page(args[0])
-    originTitle = originPage.name
-    redirectPage = Wiki.Page(args[1])
-    redirectTitle = redirectPage.name
-
-    # Tries to load the page.
     try:
-        redirectPage = Wiki.Page(args[1], redirect = True)
+        a_logger.info(f"COMMAND: redirect {args}")
 
-    # Title contains non-standard characters.
-    except InvalidPageTitle as e:
-        await error(ctx, str(e), dev = False)
+        # Shows command help.
+        if len(args) == 0:
+            await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
+            return
+        elif len(args) == 1:
+            await error(ctx, f"2 arguments expected, got 1.", dev = False)
+            return
+        elif len(args) > 2:
+            await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
+            return
+            
+        # Tries to load the pages.
+        try:    
+            originPage = Wiki.Page(args[0])
+            originTitle = originPage.name
+            redirectPage = Wiki.Page(args[1])
+            redirectTitle = redirectPage.name
+            redirectPage = Wiki.Page(args[1], redirect = True)
+
+        # Title contains non-standard characters.
+        except InvalidPageTitle as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        # Redirect chain found.
+        except RedirectCycle as e:
+            await error(ctx, str(e), dev = False)
+            return
+        
+        # Request time out.
+        except requests.exceptions.ReadTimeout as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        redirectNewTitle = redirectPage.name
+
+        # Checks for the specific situation where you want to redirect A to B,
+        # but A doesn't exist and B redirects to A.
+        if originTitle == redirectNewTitle:
+            await error (ctx, f"Page {redirectTitle} redirects to {redirectNewTitle}, which is the same as the origin page.", dev = False)
+            return
+
+        # Checks that the origin page exists, and the redirect doesn't.
+        if originPage.exists:
+            await error(ctx, f"Page {originPage.name} already exists.")
+            return
+        if not redirectPage.exists:
+            await error(ctx, f"Page {redirectPage.name} does not exist.")
+            return
+
+        # Sends confirmation message.
+        if redirectTitle == redirectNewTitle:
+            await ctx.send(f"Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
+        else:
+            await ctx.send(f"Page **{redirectTitle}** redirects to **{redirectNewTitle}**. Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
+
+        # Waits for either a confirm or cancel message.
+        try:
+            msg = await client.wait_for('message', check =
+                lambda message: message.author == ctx.author and (message.content.lower() == 'confirm' or message.content.lower() == 'cancel'),
+                timeout = 30
+            )
+        # Neither confirmed nor denied.
+        except asyncio.exceptions.TimeoutError as e:
+            await error(ctx, "Redirect timed out.", dev = False)
+            return
+            
+        # Creates the redirect if the user says yes.
+        if msg.content.lower() == 'confirm':
+            Wiki.redirect(originPage, redirectPage)
+            await ctx.send(f"Redirected {Wiki.titleToURL(originTitle)} to {Wiki.titleToURL(redirectNewTitle)}.")
+        else:
+            await ctx.send("Redirect cancelled.")
+        
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
-
-    # Redirect chain found.
-    except RedirectCycle as e:
-        await error(ctx, str(e), dev = False)
-
-    redirectNewTitle = redirectPage.name
-
-    # Checks for the specific situation where you want to redirect A to B,
-    # but A doesn't exist and B redirects to A.
-    if originTitle == redirectNewTitle:
-        await error (ctx, f"Page {redirectTitle} redirects to {redirectNewTitle}, which is the same as the origin page.", dev = False)
-        return
-
-    # Checks that the origin page exists, and the redirect doesn't.
-    if originPage.exists:
-        await error(ctx, f"Page {originPage.name} already exists.")
-        return
-    if not redirectPage.exists:
-        await error(ctx, f"Page {redirectPage.name} does not exist.")
-        return
-
-    # Sends confirmation message.
-    if redirectTitle == redirectNewTitle:
-        await ctx.send(f"Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
-    else:
-        await ctx.send(f"Page **{redirectTitle}** redirects to **{redirectNewTitle}**. Are you sure you want to redirect **{originTitle}** to **{redirectNewTitle}**?\nType `confirm/cancel`.")
-
-    # Waits for either a confirm or cancel message.
-    try:
-        msg = await client.wait_for('message', check =
-            lambda message: message.author == ctx.author and (message.content.lower() == 'confirm' or message.content.lower() == 'cancel'),
-            timeout = 30
-        )
-    # Neither confirmed nor denied.
-    except TimeoutError as e:
-        await error(ctx, "Redirect timed out.", dev = False)
-        return
-
-    # Creates the redirect if the user says yes.
-    if msg.content.lower() == 'confirm':
-        Wiki.redirect(originPage, redirectPage)
-        await ctx.send(f"Redirected {Wiki.titleToURL(originTitle)} to {Wiki.titleToURL(redirectNewTitle)}.")
-    else:
-        await ctx.send("Redirect cancelled.")
 
 # Creates a wiki redirect.
 @client.command()
 async def search(ctx, *key):
-    key = ' '.join(key)
-    a_logger.info(f"COMMAND: search {key}")
-    resultNumber = 0
+    try:
+        key = ' '.join(key)
+        a_logger.info(f"COMMAND: search {key}")
+        resultNumber = 0
 
-    embed = discord.Embed(
-        colour = discord.Colour.blue(),
-        title = f"Search Results for: {key}"
-    )
-
-    for result in Wiki.search(key):
-        resultNumber += 1
-        title = result.get('title')
-        embed.add_field(
-            name = f'Result {resultNumber}:',
-            value = f"[{title}]({Wiki.titleToURL(title)})",
-            inline = False
+        embed = discord.Embed(
+            colour = discord.Colour.blue(),
+            title = f"Search Results for: {key}"
         )
+            
+        for result in Wiki.search(key):
+            resultNumber += 1
+            title = result.get('title')
+            embed.add_field(
+                name = f'Result {resultNumber}:',
+                value = f"[{title}]({Wiki.titleToURL(title)})",
+                inline = False
+            )
 
-        if resultNumber == 10:
-            break
+            if resultNumber == 10:
+                break
 
-    if resultNumber == 0:
-        await ctx.send(f"No results found for **{key}**.")
-    else:
-        await ctx.send(embed = embed)
+        if resultNumber == 0:
+            await ctx.send(f"No results found for **{key}**.")
+        else:
+            await ctx.send(embed = embed)
+        
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+        return
 
 # Searches for a field in a wiki page.
 @client.command()
 async def info(ctx, *article):
-    article = ' '.join(article)
-    a_logger.info(f"COMMAND: info {article}")
-
-    # Tries to get the item info.
     try:
-        result = Wiki.info(article)
+        article = ' '.join(article)
+        a_logger.info(f"COMMAND: info {article}")
+        
+        # Shows command help.
+        if article == '':
+            await ctx.send("Usage: `?info dodecahedron`. Run `?help info` for details.")
+            return
+            
+        # Tries to get the item info.
+        try:
+            fieldList = Wiki.info(article)
 
-    # Title contains non-standard characters.
-    except InvalidPageTitle as e:
-        await error(ctx, str(e), dev = False)
+        # Title contains non-standard characters.
+        except InvalidPageTitle as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        # Redirect chain found.
+        except RedirectCycle as e:
+            await error(ctx, str(e), dev = False)
+            return   
+
+        msg = ""
+
+        for field, value in fieldList.items():
+            msg += parser.parse(field, value) + '\n'
+
+        await ctx.send(msg) 
+        
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
-
-    # Redirect chain found.
-    except RedirectCycle as e:
-        await error(ctx, str(e), dev = False)
-        return
-
-    await ctx.send(result)
 
 # Dev command, shows the client latency.
 @client.command()
@@ -403,22 +443,24 @@ async def ping(ctx):
 @commands.has_permissions(administrator = True)
 @client.command()
 async def prefix(ctx, *newPrefix):
-    newPrefix = ' '.join(newPrefix)
-    a_logger.info(f"COMMAND: prefix {newPrefix}")
-
-    global PREFIX
-    PREFIX = newPrefix
-    client.command_prefix = PREFIX
-
     try:
+        newPrefix = ' '.join(newPrefix)
+        a_logger.info(f"COMMAND: prefix {newPrefix}")
+
+        global PREFIX
+        PREFIX = newPrefix
+        client.command_prefix = PREFIX
+
         open("../txt/PREFIX.TXT", "w").write(PREFIX)
+
+        a_logger.info(f"INFO: prefix changed to {newPrefix}")
+        await ctx.send(f"Prefix changed to {PREFIX}")
+    
+    # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
         a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
-
-    a_logger.info(f"INFO: prefix changed to {newPrefix}")
-    await ctx.send(f"Prefix changed to {PREFIX}")
 
 # Throws an error. For testing purposes only.
 @commands.has_permissions(administrator = True)

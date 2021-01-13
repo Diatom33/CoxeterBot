@@ -22,24 +22,12 @@ class Wiki:
     def login(self):        
         self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
-    fieldNames = {
-        'dimension': 'Dimension',
-        'dim': 'Dimension',
-        'dimensions': 'Dimension',
-        'rank': 'Dimension'
-    }
-
     # Gets all fields from a page's Infobox.
     def info(self, title):
         page = self.Page(title, redirect = True)
         fieldList = Template(page.text()).getFields()
-        result = ""
-
-        for field, value in fieldList.items():
-            if field in Wiki.fieldNames:
-                result += f"**{Wiki.fieldNames[field]}:** {fieldList[field]})\n"
-
-        return result
+        
+        return fieldList
 
     # Returns a Page object with a given title.
     # If redirect, goes through the whole redirect chain.

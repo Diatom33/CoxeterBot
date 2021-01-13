@@ -4,7 +4,7 @@ from src.py.exceptions import TemplateError
 
 # Class for reading the Infobox template.
 class Template:
-    templateRegex = "{{ *[i|I]nfobox +polytope( |\n)*\|"
+    templateRegex = "{ *{ *[i|I]nfobox +polytope( |\n)*\|"
     def __init__(self, text):
         self.text = text
         match = re.search(Template.templateRegex, self.text)
@@ -45,11 +45,7 @@ class Template:
                 else:
                     break
 
-            end = self.index
-            while self.text[end] in [' ', '\n']:
-                end -= 1
-                
-            fields[field] = self.text[init:end]
+            fields[field] = self.text[init:self.index].rstrip()
 
         return fields
 
