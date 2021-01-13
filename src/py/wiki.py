@@ -19,14 +19,14 @@ class Wiki:
         self.login()
 
     # Does not store the password variable, which may either be good for security, or be stupid.
-    def login(self):        
+    def login(self):
         self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
     # Gets all fields from a page's Infobox.
     def info(self, title):
         page = self.Page(title, redirect = True)
         fieldList = Template(page.text()).getFields()
-        
+
         return fieldList
 
     # Returns a Page object with a given title.

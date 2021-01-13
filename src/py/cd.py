@@ -88,9 +88,11 @@ class CD:
         nodes = [] # The nodes in the final graph.
         edges = [] # The node pairs to link in the final graph.
 
-        prevNodeRef = None # Most recently read node.
+        prevNodeRef = None # The previously read node.
         edgeLabel = None # Most recently read edge label.
         readingNode = True # Are we reading a node (or an edge)?
+        linkNodes = False # Are we about to link nodes?
+        newNodeRef = None # The new node to add.
 
         # Reads through string.
         while self.index < len(cd):

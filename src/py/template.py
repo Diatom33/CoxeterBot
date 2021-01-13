@@ -4,16 +4,26 @@ from src.py.exceptions import TemplateError
 
 # Class for reading the Infobox template.
 class Template:
-    templateRegex = "{ *{ *[i|I]nfobox +polytope( |\n)*\|"
     def __init__(self, text):
         self.text = text
-        match = re.search(Template.templateRegex, self.text)
+        self.templateRegex = self.regex("Infobox polytope")
+        match = re.search(self.templateRegex, self.text)
 
         if match is None:
             raise TemplateError("Infobox polytope not found.")
 
-        self.index = match.span()[1] - 1
+        self.index = match.span()[1]
         self.nestLevel = 2
+
+    # Returns a regex to find the beginning of a template and its first argument (with various aliases).
+    @staticmethod
+    def regex(*templates):
+        regex = r"{ *{ *"
+        for template in templates:
+            inner = "(" + template[0].lower() + "|" + template[0].upper() + ")" + template[1:].replace(' ', ' +') + r"\s*"
+            regex += "(" + inner + ")|"
+
+        return regex[:-1]
 
     # Gets all fields of the template.
     def getFields(self):

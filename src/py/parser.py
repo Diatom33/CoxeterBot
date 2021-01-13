@@ -1,20 +1,28 @@
 import re
+from src.py.template import Template
 
-def parse(field, value):
-    if field in parsers:
-        parser = parsers[field]        
-        if type(parser) is not str:
-            return parser(value)            
-        field = parser        
-    return stringFormat(field, value)
+def parse(fieldList):
+    parseFieldList = {}
+
+    for field, value in fieldList.items():
+        if field in parsers:
+            parser = parsers[field]
+            if type(parser) is str:
+                field = parser
+            else:
+                field, value = parser(value)
+            parseFieldList[field] = value
+
+    return parseFieldList
         
 # We should remove italics and bold, but preserve links.
 def stringFormat(field, value):
-    return f"**{field.title()}:** {value}"
+    return field, value
         
 # Cleans up a CD.
 def cd(value):
-    match = re.search('\(?{ *{ *(CD|Coxeter-Dynkin +Diagram)', value)
+    regex = r'\(?' + Template.regex("CDD", "Coxeter-Dynkin Diagram")
+    match = re.search(regex, value)
     
     if match is not None:
         value = value[:match.span()[0]].rstrip()
@@ -29,12 +37,14 @@ parsers = {
     'type': "Type",
     'space': "Space",
     'acronym': "BSA",
-    'obsa': "BSA",
-    'bsa': "BSA",
-    'ubsa': "BSA",
+    'obsa': "Bowers Style Acronym",
+    'bsa': "Bowers Style Acronym",
+    'ubsa': "Bowers Style Acronym",
     'csymbol': cd,
     'cox': cd,
     'coxeter': cd,
+    'cd': cd,
+    'cdd': cd,
     'schlafli': 'Schläfli symbol',
     'schläfli': 'Schläfli symbol',
     'symmetry': 'Symmetry',

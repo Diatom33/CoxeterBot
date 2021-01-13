@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 
@@ -7,6 +8,8 @@ import datetime
 import traceback
 import os
 import re
+import requests
+import asyncio
 from asyncio.exceptions import TimeoutError
 
 from PIL import Image, ImageDraw
@@ -21,6 +24,7 @@ from mwclient.errors import InvalidPageTitle
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read()
+DEBUG = True
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
@@ -63,7 +67,7 @@ wikiShortExplanation = (
 )
 redirectShortExplanation = (
     "Automatically creates a redirect between two articles on the wiki. "
-    f"Resolves existing redirects automatically. "
+    "Resolves existing redirects automatically. "
     f"Can only be used by {ROLE_ID}."
 )
 searchShortExplanation = "Searches for an article on the wiki."
@@ -212,7 +216,7 @@ async def cd(ctx, *cd):
 
             os.remove(fileName)
             a_logger.info(f"INFO: Removed {fileName} file.")
-    
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -267,7 +271,7 @@ async def wiki(ctx, *title):
         await error(ctx, str(e), dev = True)
         a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
-       
+
 # Creates a wiki redirect.
 @client.command()
 @commands.has_role('Wiki Contributor')
@@ -285,9 +289,9 @@ async def redirect(ctx, *args):
         elif len(args) > 2:
             await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
             return
-            
+
         # Tries to load the pages.
-        try:    
+        try:
             originPage = Wiki.Page(args[0])
             originTitle = originPage.name
             redirectPage = Wiki.Page(args[1])
@@ -303,7 +307,7 @@ async def redirect(ctx, *args):
         except RedirectCycle as e:
             await error(ctx, str(e), dev = False)
             return
-        
+
         # Request time out.
         except requests.exceptions.ReadTimeout as e:
             await error(ctx, str(e), dev = False)
@@ -341,14 +345,14 @@ async def redirect(ctx, *args):
         except asyncio.exceptions.TimeoutError as e:
             await error(ctx, "Redirect timed out.", dev = False)
             return
-            
+
         # Creates the redirect if the user says yes.
         if msg.content.lower() == 'confirm':
             Wiki.redirect(originPage, redirectPage)
             await ctx.send(f"Redirected {Wiki.titleToURL(originTitle)} to {Wiki.titleToURL(redirectNewTitle)}.")
         else:
             await ctx.send("Redirect cancelled.")
-        
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -367,7 +371,7 @@ async def search(ctx, *key):
             colour = discord.Colour.blue(),
             title = f"Search Results for: {key}"
         )
-            
+
         for result in Wiki.search(key):
             resultNumber += 1
             title = result.get('title')
@@ -384,7 +388,7 @@ async def search(ctx, *key):
             await ctx.send(f"No results found for **{key}**.")
         else:
             await ctx.send(embed = embed)
-        
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -397,12 +401,12 @@ async def info(ctx, *article):
     try:
         article = ' '.join(article)
         a_logger.info(f"COMMAND: info {article}")
-        
+
         # Shows command help.
         if article == '':
             await ctx.send("Usage: `?info dodecahedron`. Run `?help info` for details.")
             return
-            
+
         # Tries to get the item info.
         try:
             fieldList = Wiki.info(article)
@@ -415,15 +419,21 @@ async def info(ctx, *article):
         # Redirect chain found.
         except RedirectCycle as e:
             await error(ctx, str(e), dev = False)
-            return   
+            return
+
+        # Redirect chain found.
+        except TemplateError as e:
+            await error(ctx, str(e), dev = False)
+            return
 
         msg = ""
 
+        fieldList = parser.parse(fieldList)
         for field, value in fieldList.items():
-            msg += parser.parse(field, value) + '\n'
+            msg += f"**{field}:** {value}" + '\n'
 
-        await ctx.send(msg) 
-        
+        await ctx.send(msg)
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -455,7 +465,7 @@ async def prefix(ctx, *newPrefix):
 
         a_logger.info(f"INFO: prefix changed to {newPrefix}")
         await ctx.send(f"Prefix changed to {PREFIX}")
-    
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -477,8 +487,9 @@ async def error(ctx, text, dev = False):
         msg = f"```UNEXPECTED ERROR: {text}```\n"
 
         # Pings all devs in case of a dev error.
-        for user in USER_IDS:
-            msg += f"<@{user}>\n"
+        if not DEBUG:
+            for user in USER_IDS:
+                msg += f"<@{user}>\n"
     else:
         logMsg = f"ERROR: {text}"
         msg = f"```ERROR: {text}```"
