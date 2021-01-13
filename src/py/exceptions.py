@@ -5,3 +5,7 @@ class CDError(Exception):
 # Error thrown when a redirect chain is encountered.
 class RedirectCycle(Exception):
     pass
+
+# Error when reading a template.
+class TemplateError(Exception):
+    pass

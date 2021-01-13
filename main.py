@@ -12,7 +12,7 @@ from asyncio.exceptions import TimeoutError
 from PIL import Image, ImageDraw
 
 from src.py.cd import CD
-from src.py.exceptions import CDError, RedirectCycle
+from src.py.exceptions import CDError, RedirectCycle, TemplateError
 from src.py.draw import Draw
 from src.py.wiki import Wiki as WikiClass
 
@@ -62,10 +62,12 @@ wikiShortExplanation = (
     f"[Polytope Wiki]({Wiki.fullURL}). Resolves redirects automatically."
 )
 redirectShortExplanation = (
-    "Automatically creates a redirect between two articles on the "
-    f"[Polytope Wiki]({Wiki.fullURL}). Resolves existing redirects automatically. "
+    "Automatically creates a redirect between two articles on the wiki."
+    f"Resolves existing redirects automatically. "
     f"Can only be used by {ROLE_ID}."
 )
+searchShortExplanation = "Searches for an article on the wiki."
+infoShortExplanation = "Gets a shape's info from its infobox on the wiki."
 
 @client.command(pass_context = True)
 async def help(ctx, *command):
@@ -100,6 +102,18 @@ async def help(ctx, *command):
         helpEmbed.add_field(
             name = f"`{PREFIX}redirect [origin] [target]`",
             value = redirectShortExplanation,
+            inline = False
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}search [key]`",
+            value = searchShortExplanation,
+            inline = False
+        )
+
+        helpEmbed.add_field(
+            name = f"`{PREFIX}info [shape]`",
+            value = infoShortExplanation,
             inline = False
         )
 
@@ -145,6 +159,26 @@ async def help(ctx, *command):
                 f"`{PREFIX}redirect x3o3o tetrahedron`: Redirects the **X3o3o** article to **Tetrahedron**.\n"
                 f"`{PREFIX}redirect x3o5o ike`: Redirects the **X3o5o** article to **Icosahedron**.\n"
                 f"`{PREFIX}redirect squat \"square tiling\"`: Redirects the **Squat** article to **Square tiling**."
+            )
+        ))
+    # The ?help search embed.
+    elif command == 'search':
+        await ctx.send(embed = commandHelpEmbed(
+            command = command,
+            shortExplanation = searchShortExplanation,
+            examples = (
+                f"`{PREFIX}search dodecahedron`: Gets the wiki results for \"dodecahedron\".\n"
+                f"`{PREFIX}search great stellated`: Gets the wiki results for \"great stellated\"."
+            )
+        ))
+    # The ?info search embed.
+    elif command == 'info':
+        await ctx.send(embed = commandHelpEmbed(
+            command = command,
+            shortExplanation = infoShortExplanation,
+            examples = (
+                f"`{PREFIX}info square`: Gets the info for a square.\n"
+                f"`{PREFIX}info great dodecahedron`: Gets the info for a great dodecahedron."
             )
         ))
     else:
@@ -197,8 +231,7 @@ async def wiki(ctx, *title):
 
     # Tries to load the page.
     try:
-        page = Wiki.Page(title)
-        page = Wiki.resolveRedirect(page)
+        page = Wiki.Page(title, redirect = True)
 
     # Title contains non-standard characters.
     except InvalidPageTitle as e:
@@ -254,7 +287,7 @@ async def redirect(ctx, *args):
     redirectTitle = redirectPage.name
 
     try:
-        redirectPage = Wiki.resolveRedirect(Wiki.Page(args[1]))
+        redirectPage = Wiki.Page(args[1], redirect = True)
     except RedirectCycle as e:
         await error(ctx, str(e), dev = False)
 
@@ -301,13 +334,14 @@ async def redirect(ctx, *args):
 @client.command()
 async def search(ctx, *key):
     key = ' '.join(key)
+    a_logger.info(f"COMMAND: search {key}")
     resultNumber = 0
-    
+
     embed = discord.Embed(
         colour = discord.Colour.blue(),
         title = f"Search Results for: {key}"
     )
-    
+
     for result in Wiki.search(key):
         resultNumber += 1
         title = result.get('title')
@@ -316,14 +350,32 @@ async def search(ctx, *key):
             value = f"[{title}]({Wiki.titleToURL(title)})",
             inline = False
         )
-        
+
         if resultNumber == 10:
             break
-    
+
     if resultNumber == 0:
         await ctx.send(f"No results found for **{key}**.")
     else:
         await ctx.send(embed = embed)
+
+# Searches for a field in a wiki page.
+@client.command()
+async def info(ctx, *article):
+    article = ' '.join(article)
+    a_logger.info(f"COMMAND: info {article}")
+    
+    # Tries to get the item info.
+    try:
+        result = Wiki.info(article)
+    except TemplateError as e:
+        await error(ctx, str(e), dev = False)
+        return
+    except RedirectCycle as e:    
+        await error(ctx, str(e), dev = False)
+        return
+        
+    await ctx.send(result)
 
 # Dev command, shows the client latency.
 @client.command()
