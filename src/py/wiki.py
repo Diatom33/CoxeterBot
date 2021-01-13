@@ -3,6 +3,7 @@ from src.py.template import Template
 
 from mwclient import Site
 from mwclient.page import Page
+from mwclient.errors import AssertUserFailedError
 
 # A wrapper for mwclient.
 class Wiki:
@@ -15,47 +16,30 @@ class Wiki:
         self.fullURL = 'https://' + self.URL + 'wiki/'
 
         self.site = Site(self.URL, clients_useragent = self.userAgent)
+        self.login()
 
+    # Does not store the password variable, which may either be good for security, or be stupid.
+    def login(self):        
         self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
-
-    keywords = [
-        {"list": ['dimension', 'dimensions', 'dim', 'rank'], "format": 'The number of **dimensions** of {shape} is: {result}'},
-        {"list": ['type'], "fieldName": 'type'},
-        {"list": ['space'], "alt": 'spherical'},
-
-        {"list": ['acronym', 'obsa', 'bsa', 'ubsa']},
-
-        {"list": ['csymbol', 'cox', 'coxeter', 'cd']},
-        {"list": ['schlafli', 'schläfli']},
-        {"list": ['symmetry']},
-
-        {"list": ['army']},
-        {"list": ['reg', 'regiment']},
-        {"list": ['company']},
-
-        {"list": ['circum', 'circumradius', 'rad', 'radius']}
-    ]
+    fieldNames = {
+        'dimension': 'Dimension',
+        'dim': 'Dimension',
+        'dimensions': 'Dimension',
+        'rank': 'Dimension'
+    }
 
     # Gets all fields from a page's Infobox.
     def info(self, title):
         page = self.Page(title, redirect = True)
-        fields = Template(page.text()).getFields()
+        fieldList = Template(page.text()).getFields()
         result = ""
 
-        for field, value in fields.items():
-            result += f"**{field}**: {value}"
+        for field, value in fieldList.items():
+            if field in Wiki.fieldNames:
+                result += f"**{Wiki.fieldNames[field]}:** {fieldList[field]})\n"
 
         return result
-
-    # Gets a field matching an element from a list from a page's Infobox.
-    def __get(self, text, keyword):
-        if hasattr(keyword, "alt"):
-            alt = keyword["alt"]
-        else:
-            alt = None
-
-        return Template(text).getField(keyword["list"]) or alt
 
     # Returns a Page object with a given title.
     # If redirect, goes through the whole redirect chain.
@@ -113,5 +97,8 @@ class Wiki:
     # Redirects a page to another.
     # Does not perform any checks to see whether the pages exist, etc.
     def redirect(self, originPage, targetPage):
-        originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
-       
+        try:
+            originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
+        except AssertUserFailedError:
+            self.login()
+            self.redirect(originPage, targetPage)

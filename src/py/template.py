@@ -45,7 +45,11 @@ class Template:
                 else:
                     break
 
-            fields[field] = self.text[init:self.index]
+            end = self.index
+            while self.text[end] in [' ', '\n']:
+                end -= 1
+                
+            fields[field] = self.text[init:end]
 
         return fields
 
