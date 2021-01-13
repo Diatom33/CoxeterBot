@@ -18,12 +18,12 @@ class Template:
     # Gets all fields of the template.
     def getFields(self):
         fields = {}
-        
+
         # While inside of the infobox template:
         while self.nestLevel >= 2:
             # Reads the field.
             # The current char should be '|'.
-            self.skip() 
+            self.skip()
             field = self.readWord()
 
             # Reads the equals sign.
@@ -51,16 +51,16 @@ class Template:
 
     # Gets the current character.
     def getChar(self):
-        return self.text[self.index]        
+        return self.text[self.index]
 
     # Skips unti a certain char is found.
     def seekFor(self, char):
         self.index = self.text.index(char, self.index)
         return self.index
-        
+
     # Skips until the next non-space char.
     def skip(self):
-        self.index += 1    
+        self.index += 1
         while self.getChar() == ' ':
             self.index += 1
 

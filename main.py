@@ -62,7 +62,7 @@ wikiShortExplanation = (
     f"[Polytope Wiki]({Wiki.fullURL}). Resolves redirects automatically."
 )
 redirectShortExplanation = (
-    "Automatically creates a redirect between two articles on the wiki."
+    "Automatically creates a redirect between two articles on the wiki. "
     f"Resolves existing redirects automatically. "
     f"Can only be used by {ROLE_ID}."
 )
@@ -364,17 +364,17 @@ async def search(ctx, *key):
 async def info(ctx, *article):
     article = ' '.join(article)
     a_logger.info(f"COMMAND: info {article}")
-    
+
     # Tries to get the item info.
     try:
         result = Wiki.info(article)
     except TemplateError as e:
         await error(ctx, str(e), dev = False)
         return
-    except RedirectCycle as e:    
+    except RedirectCycle as e:
         await error(ctx, str(e), dev = False)
         return
-        
+
     await ctx.send(result)
 
 # Dev command, shows the client latency.
