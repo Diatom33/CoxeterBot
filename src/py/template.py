@@ -4,9 +4,9 @@ from src.py.exceptions import TemplateError
 
 # Class for reading the Infobox template.
 class Template:
-    def __init__(self, text):
-        self.text = text
-        self.templateRegex = self.regex("Infobox polytope")
+    def __init__(self, text: str):
+        self.text: str = text
+        self.templateRegex: str = self.regex("Infobox polytope")
         match = re.search(self.templateRegex, self.text)
 
         if match is None:
@@ -64,18 +64,18 @@ class Template:
         return self.text[self.index]
 
     # Skips unti a certain char is found.
-    def seekFor(self, char):
+    def seekFor(self, char: str) -> int:
         self.index = self.text.index(char, self.index)
         return self.index
 
     # Skips until the next non-space char.
-    def skip(self):
+    def skip(self) -> None:
         self.index += 1
         while self.getChar() == ' ':
             self.index += 1
 
     # Reads until ' ' or '=' is found.
-    def readWord(self):
+    def readWord(self) -> str:
         init = self.index
         while self.getChar() not in [' ', '=']:
             self.index += 1

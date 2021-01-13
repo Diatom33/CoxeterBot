@@ -4,11 +4,13 @@ import sys
 import math
 from src.py.exceptions import CDError
 
+from typing import List, NoReturn, Optional, Union
+
 MAX_LEN = 100 # Hardcoded node limit.
 
 # Stores the index of a node, and its position in the string.
 class NodeRef:
-    def __init__(self, index, pos):
+    def __init__(self, index: int, pos: int):
         self.index = index
         self.pos = pos
 
@@ -40,13 +42,13 @@ virtualNodesNumber = f"\*-?[1-9]|\*\(-?{numberRegex}\)"
 # Represents a Coxeter Diagram, and contains the necessary methods to parse it.
 class CD:
     # Class initializer.
-    def __init__(self, string):
+    def __init__(self, string: str):
         # The index of the CD at which we're reading.
         self.index = 0
         self.string = string
 
     # Tries to match a regex at certain point in the string.
-    def matchRegex(self, regex):
+    def matchRegex(self, regex: str) -> Optional[str]:
         match = re.search(regex, self.string[self.index:])
         if match is None:
             return None
@@ -60,12 +62,12 @@ class CD:
 
         return match.group()
 
-    def readNode(self):
-        return self.matchRegex(nodeLabels)
+    def readNode(self) -> str:
+        return self.matchRegex(nodeLabels) or ""
 
     # Reads a number from a given position.
-    def readNumber(self):
-        return self.matchRegex(edgeLabels)
+    def readNumber(self) -> str:
+        return self.matchRegex(edgeLabels) or ""
 
     # Reads a virtual node from a given position.
     def readVirtualNode(self, nodeType):
@@ -76,23 +78,19 @@ class CD:
         else:
             self.error("Invalid virtual node type", dev = True)
 
-    # Reads a number from a given position.
-    def readNumber(self):
-        return self.matchRegex(edgeLabels)
-
     # Converts a textual Coxeter Diagram to a graph.
-    def toGraph(self):
+    def toGraph(self) -> Graph:
         self.index = 0
         cd = self.string
 
-        nodes = [] # The nodes in the final graph.
-        edges = [] # The node pairs to link in the final graph.
+        nodes: List[Node] = [] # The nodes in the final graph.
+        edges: List[Node] = [] # The node pairs to link in the final graph.
 
-        prevNodeRef = None # The previously read node.
-        edgeLabel = None # Most recently read edge label.
-        readingNode = True # Are we reading a node (or an edge)?
-        linkNodes = False # Are we about to link nodes?
-        newNodeRef = None # The new node to add.
+        prevNodeRef: Optional[NodeRef] = None # The previously read node.
+        edgeLabel: str = "" # Most recently read edge label.
+        readingNode: bool = True # Are we reading a node (or an edge)?
+        linkNodes: bool = False # Are we about to link nodes?
+        newNodeRef: Optional[NodeRef] = None # The new node to add.
 
         # Reads through string.
         while self.index < len(cd):
@@ -102,7 +100,7 @@ class CD:
                     self.error("Expected node label, got space instead.")
 
                 readingNode = True
-                edgeLabel = None
+                edgeLabel = ""
 
             # Skips hyphens in the middle of the string.
             elif cd[self.index] == "-":
@@ -172,7 +170,7 @@ class CD:
             else:
                 edgeLabel = self.readNumber()
 
-                if edgeLabel is None:
+                if edgeLabel == "":
                     self.error(f"Invalid edge symbol.")
 
                 if edgeLabel[0] == '(':
@@ -182,7 +180,7 @@ class CD:
 
             # Links two nodes if necessary.
             if linkNodes:
-                if not (prevNodeRef is None or edgeLabel is None):
+                if not (prevNodeRef is None or edgeLabel == ""):
                     edges.append({
                         0: newNodeRef,
                         1: prevNodeRef,
@@ -192,7 +190,7 @@ class CD:
                 # Updates variables.
                 linkNodes = False
                 prevNodeRef = newNodeRef
-                edgeLabel = None
+                edgeLabel = ""
                 readingNode = False
 
             self.index += 1
@@ -226,7 +224,7 @@ class CD:
 
     # Raises an error with a certain message.
     # Shows as an "Unexpected error" if dev = True (these are errors that the devs didn't consider).
-    def error(self, text, dev = False):
+    def error(self, text, dev = False) -> NoReturn:
         msg = f"Diagram parsing failed at index {str(self.index)}. {text}"
 
         if dev:

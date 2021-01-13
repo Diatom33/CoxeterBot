@@ -1,7 +1,7 @@
 import re
 from src.py.template import Template
 
-def parse(fieldList):
+def parse(fieldList: dict[str, str]):
     parseFieldList = {}
 
     for field, value in fieldList.items():
@@ -16,11 +16,11 @@ def parse(fieldList):
     return parseFieldList
         
 # We should remove italics and bold, but preserve links.
-def stringFormat(field, value):
+def stringFormat(field: str, value: str):
     return field, value
         
 # Cleans up a CD.
-def cd(value):
+def cd(value: str):
     regex = r'\(?' + Template.regex("CDD", "Coxeter-Dynkin Diagram")
     match = re.search(regex, value)
     

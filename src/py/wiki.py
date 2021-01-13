@@ -1,9 +1,11 @@
 from src.py.exceptions import RedirectCycle
 from src.py.template import Template
-
+import src.py.parser as parser
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import AssertUserFailedError
+
+from typing import Dict
 
 # A wrapper for mwclient.
 class Wiki:
@@ -19,19 +21,24 @@ class Wiki:
         self.login()
 
     # Does not store the password variable, which may either be good for security, or be stupid.
-    def login(self):
+    def login(self) -> None:
         self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
     # Gets all fields from a page's Infobox.
-    def info(self, title):
-        page = self.Page(title, redirect = True)
-        fieldList = Template(page.text()).getFields()
+    def getFields(self, title: str) -> Dict[str, str]:
+        return parser.parse(
+            Template(
+                self.page(title, redirect = True).text()
+            ).getFields()
+        )
 
-        return fieldList
+    # Gets a single field from a page's Infobox.
+    def getField(self, title: str, field: str) -> str:
+        return self.getFields(title)[field]
 
     # Returns a Page object with a given title.
     # If redirect, goes through the whole redirect chain.
-    def Page(self, title, redirect = False):
+    def page(self, title: str, redirect: bool = False) -> Page:
         page = Page(self.site, title)
         if redirect:
             page = self.resolveRedirect(page)
@@ -39,15 +46,15 @@ class Wiki:
         return page
 
     # Gets the URL of a page.
-    def pageURL(self, page):
+    def pageURL(self, page: Page) -> str:
         return self.titleToURL(page.name)
 
     # Gets the URL of a page from its title.
-    def titleToURL(self, title):
+    def titleToURL(self, title: str) -> str:
         return self.fullURL + title.translate({32: '_'})
 
     # Searches all articles with a given word in its title.
-    def search(self, key):
+    def search(self, key: str):
         # Sorts by length first, then alphabetically.
         def sortFun(x):
             x = x.get('title')
@@ -58,7 +65,7 @@ class Wiki:
     # From a page, which might exist or not, goes through the entire redirect chain.
     # Fixes any double redirects it comes across.
     # Throws an exception on a cyclic redirect.
-    def resolveRedirect(self, page):
+    def resolveRedirect(self, page: Page) -> str:
         # If the page doesn't exist, returns itself.
         if not page.exists:
             return page

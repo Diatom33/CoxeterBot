@@ -409,7 +409,7 @@ async def info(ctx, *article):
 
         # Tries to get the item info.
         try:
-            fieldList = Wiki.info(article)
+            fieldList = Wiki.getFields(article)
 
         # Title contains non-standard characters.
         except InvalidPageTitle as e:
@@ -428,7 +428,6 @@ async def info(ctx, *article):
 
         msg = ""
 
-        fieldList = parser.parse(fieldList)
         for field, value in fieldList.items():
             msg += f"**{field}:** {value}" + '\n'
 
@@ -471,12 +470,6 @@ async def prefix(ctx, *newPrefix):
         await error(ctx, str(e), dev = True)
         a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
-
-# Throws an error. For testing purposes only.
-@commands.has_permissions(administrator = True)
-@client.command()
-async def error(ctx):
-    await error(ctx, "Test error!", dev = True)
 
 # Logs an error and posts it.
 # dev signifies that the error is on the developers' fault.
