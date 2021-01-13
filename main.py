@@ -286,8 +286,16 @@ async def redirect(ctx, *args):
     redirectPage = Wiki.Page(args[1])
     redirectTitle = redirectPage.name
 
+    # Tries to load the page.
     try:
         redirectPage = Wiki.Page(args[1], redirect = True)
+
+    # Title contains non-standard characters.
+    except InvalidPageTitle as e:
+        await error(ctx, str(e), dev = False)
+        return
+
+    # Redirect chain found.
     except RedirectCycle as e:
         await error(ctx, str(e), dev = False)
 
@@ -319,6 +327,7 @@ async def redirect(ctx, *args):
             lambda message: message.author == ctx.author and (message.content.lower() == 'confirm' or message.content.lower() == 'cancel'),
             timeout = 30
         )
+    # Neither confirmed nor denied.
     except TimeoutError as e:
         await error(ctx, "Redirect timed out.", dev = False)
         return
@@ -368,9 +377,13 @@ async def info(ctx, *article):
     # Tries to get the item info.
     try:
         result = Wiki.info(article)
-    except TemplateError as e:
+
+    # Title contains non-standard characters.
+    except InvalidPageTitle as e:
         await error(ctx, str(e), dev = False)
         return
+
+    # Redirect chain found.
     except RedirectCycle as e:
         await error(ctx, str(e), dev = False)
         return

@@ -21,7 +21,8 @@ fractionRegex = f"({numberRegex}\/{numberRegex})"
 # A letter, surrounded by parentheses, with a possible hyphen.
 # A fraction surrounded by parentheses.
 # A number surrounded by parentheses.
-nodeLabels = f"[a-zA-Zß]|\(((-?[a-zA-Z])|{fractionRegex}|{numberRegex})\)"
+nodeLabels_ = f"[a-zA-Zß]|{fractionRegex}|{numberRegex}"
+nodeLabels = f"({nodeLabels_})|\(({nodeLabels_})\)"
 
 # Matches one of the follwing:
 # A fraction of two natural numbers.
@@ -30,7 +31,8 @@ nodeLabels = f"[a-zA-Zß]|\(((-?[a-zA-Z])|{fractionRegex}|{numberRegex})\)"
 # ∞, possibly followed by '.
 # Ø
 # 3 or more dots in succession. (...)
-edgeLabels = f"({fractionRegex}|{numberRegex}|[a-zA-Z]|∞)'?|Ø|\.\.\.+"
+edgeLabels_ = f"({fractionRegex}|{numberRegex}|[a-zA-Z]|∞)'?|Ø|\.\.\.+"
+edgeLabels = f"({edgeLabels_})|\(({edgeLabels_})\)"
 
 virtualNodesLetter = "\*-?[a-z]"
 virtualNodesNumber = f"\*-?[1-9]|\*\(-?{numberRegex}\)"
@@ -167,8 +169,12 @@ class CD:
             # Edge values
             else:
                 edgeLabel = self.readNumber()
+
                 if edgeLabel is None:
                     self.error(f"Invalid edge symbol.")
+
+                if edgeLabel[0] == '(':
+                    edgeLabel = edgeLabel[1:-1]
 
                 readingNode = True
 
