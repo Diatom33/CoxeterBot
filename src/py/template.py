@@ -74,13 +74,13 @@ class Template:
     # Skips until the next non-space char.
     def skip(self) -> None:
         self.index += 1
-        while self.getChar() == ' ':
+        while self.getChar().isspace():
             self.index += 1
 
     # Reads until ' ' or '=' is found.
     def readWord(self) -> str:
         init = self.index
-        while self.getChar() not in [' ', '=']:
+        while self.getChar() not in [' ', '\n', '=']:
             self.index += 1
 
         return self.text[init:self.index]
