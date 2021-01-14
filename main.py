@@ -1,3 +1,5 @@
+#!/usr/bin/python3.9
+
 import asyncio
 import discord
 from discord.ext import commands
@@ -7,18 +9,13 @@ import logging
 import datetime
 import traceback
 import os
-import re
 import requests
 import asyncio
-from asyncio.exceptions import TimeoutError
-
-from PIL import Image, ImageDraw
 
 from src.py.cd import CD
 from src.py.exceptions import CDError, RedirectCycle, TemplateError
 from src.py.draw import Draw
 from src.py.wiki import Wiki as WikiClass
-import src.py.parser as parser
 from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
@@ -74,8 +71,8 @@ searchShortExplanation = "Searches for an article on the wiki."
 infoShortExplanation = "Gets a shape's info from its infobox on the wiki."
 
 @client.command(pass_context = True)
-async def help(ctx, *command):
-    command = ' '.join(command)
+async def help(ctx, *args: str) -> None:
+    command = ' '.join(args)
     a_logger.info(f"COMMAND: help {command}")
 
     # Configures the main help embed.
@@ -190,9 +187,9 @@ async def help(ctx, *command):
 
 # Shows a Coxeter-Dynkin diagram.
 @client.command()
-async def cd(ctx, *cd):
+async def cd(ctx, *args: str) -> None:
     try:
-        cd = ' '.join(cd)
+        cd = ' '.join(args)
         a_logger.info(f"COMMAND: cd {cd}")
 
         if cd == '':
@@ -201,7 +198,7 @@ async def cd(ctx, *cd):
             await ctx.send(":cd: :play_pause:")
         else:
             try:
-                temp = Draw(CD(cd).toGraph()).draw()
+                temp = Draw(CD(cd).toGraph()).toImage()
             except CDError as e:
                 await error(ctx, str(e), dev = False)
                 return
@@ -225,9 +222,9 @@ async def cd(ctx, *cd):
 
 # Posts the link to a wiki article.
 @client.command()
-async def wiki(ctx, *title):
+async def wiki(ctx, *args: str) -> None:
     try:
-        title = ' '.join(title)
+        title = ' '.join(args)
 
         # Displays help.
         if title == '':
@@ -239,7 +236,7 @@ async def wiki(ctx, *title):
 
         # Tries to load the page.
         try:
-            page = Wiki.Page(title, redirect = True)
+            page = Wiki.page(title, redirect = True)
 
         # Title contains non-standard characters.
         except InvalidPageTitle as e:
@@ -275,7 +272,7 @@ async def wiki(ctx, *title):
 # Creates a wiki redirect.
 @client.command()
 @commands.has_role('Wiki Contributor')
-async def redirect(ctx, *args):
+async def redirect(ctx, *args: str):
     try:
         a_logger.info(f"COMMAND: redirect {args}")
 
@@ -292,11 +289,11 @@ async def redirect(ctx, *args):
 
         # Tries to load the pages.
         try:
-            originPage = Wiki.Page(args[0])
+            originPage = Wiki.page(args[0])
             originTitle = originPage.name
-            redirectPage = Wiki.Page(args[1])
+            redirectPage = Wiki.page(args[1])
             redirectTitle = redirectPage.name
-            redirectPage = Wiki.Page(args[1], redirect = True)
+            redirectPage = Wiki.page(args[1], redirect = True)
 
         # Title contains non-standard characters.
         except InvalidPageTitle as e:
@@ -361,9 +358,9 @@ async def redirect(ctx, *args):
 
 # Creates a wiki redirect.
 @client.command()
-async def search(ctx, *key):
+async def search(ctx, *args: str):
     try:
-        key = ' '.join(key)
+        key = ' '.join(args)
         a_logger.info(f"COMMAND: search {key}")
         resultNumber = 0
 
@@ -397,9 +394,9 @@ async def search(ctx, *key):
 
 # Searches for a field in a wiki page.
 @client.command()
-async def info(ctx, *article):
+async def info(ctx, *args):
     try:
-        article = ' '.join(article)
+        article = ' '.join(args)
         a_logger.info(f"COMMAND: info {article}")
 
         # Shows command help.
@@ -451,9 +448,9 @@ async def ping(ctx):
 # Changes the bot prefix.
 @commands.has_permissions(administrator = True)
 @client.command()
-async def prefix(ctx, *newPrefix):
+async def prefix(ctx, *args):
     try:
-        newPrefix = ' '.join(newPrefix)
+        newPrefix = ' '.join(args)
         a_logger.info(f"COMMAND: prefix {newPrefix}")
 
         global PREFIX

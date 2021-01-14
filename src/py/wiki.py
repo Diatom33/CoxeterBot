@@ -1,6 +1,6 @@
 from src.py.exceptions import RedirectCycle
 from src.py.template import Template
-import src.py.parser as parser
+from src.py import parser as parser
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import AssertUserFailedError
@@ -10,7 +10,7 @@ from typing import Dict
 # A wrapper for mwclient.
 class Wiki:
     # Class initializer.
-    def __init__(self):
+    def __init__(self) -> None:
         self.username = 'OfficialURL@CoxeterBot'
         self.userAgent = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
 
@@ -65,7 +65,7 @@ class Wiki:
     # From a page, which might exist or not, goes through the entire redirect chain.
     # Fixes any double redirects it comes across.
     # Throws an exception on a cyclic redirect.
-    def resolveRedirect(self, page: Page) -> str:
+    def resolveRedirect(self, page: Page) -> Page:
         # If the page doesn't exist, returns itself.
         if not page.exists:
             return page

@@ -1,13 +1,14 @@
 import re
-from src.py.template import Template
+from typing import Callable, Dict, Tuple, Union
+from .template import Template
 
-def parse(fieldList: dict[str, str]):
-    parseFieldList = {}
+def parse(fieldList: Dict[str, str]) -> Dict[str, str]:
+    parseFieldList: Dict[str, str] = {}
 
     for field, value in fieldList.items():
         if field in parsers:
             parser = parsers[field]
-            if type(parser) is str:
+            if isinstance(parser, str):
                 field = parser
             else:
                 field, value = parser(value)
@@ -16,11 +17,11 @@ def parse(fieldList: dict[str, str]):
     return parseFieldList
         
 # We should remove italics and bold, but preserve links.
-def stringFormat(field: str, value: str):
+def stringFormat(field: str, value: str) -> Tuple[str, str]:
     return field, value
         
 # Cleans up a CD.
-def cd(value: str):
+def cd(value: str) -> Tuple[str, str]:
     regex = r'\(?' + Template.regex("CDD", "Coxeter-Dynkin Diagram")
     match = re.search(regex, value)
     
@@ -29,7 +30,7 @@ def cd(value: str):
         
     return stringFormat('Coxeter diagram', value)
 
-parsers = {
+parsers: Dict[str, Union[str, Callable[[str], Tuple[str, str]]]] = {
     'dimension': "Dimensions",
     'dim': "Dimensions",
     'dimensions': "Dimensions",

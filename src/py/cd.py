@@ -1,8 +1,6 @@
 import re
-from src.py.node import Node, Graph
-import sys
-import math
-from src.py.exceptions import CDError
+from .node import Node, Graph
+from .exceptions import CDError
 
 from typing import List, NoReturn, Optional, Union
 

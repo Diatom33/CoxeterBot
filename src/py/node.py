@@ -1,11 +1,13 @@
-import re
-import math
-from src.py.exceptions import CDError
+from __future__ import annotations
+from typing import List
+from .exceptions import CDError
 
 # Nodes in a CD.
 class Node:
+    __comp: List[Node]
+
     # Class constructor.
-    def __init__(self, value, index):
+    def __init__(self, value: str, index: int) -> None:
         self.stringIndex = index
 
         if value != 'ß':
@@ -13,16 +15,16 @@ class Node:
         else:
             self.value = '+'
 
-        self.neighbors = []
-        self.edgeLabels = []
-        self.visited = False
+        self.neighbors: List[Node] = []
+        self.edgeLabels: List[str] = []
+        self.visited: bool = False
 
     # Gets the degree of a node.
-    def degree(self):
+    def degree(self) -> int:
         return len(self.neighbors)
 
     # Links two nodes together.
-    def linkTo(self, node, label):
+    def linkTo(self, node: Node, label: str) -> None:
         if self is node:
             raise CDError("Can't link node to self.")
 
@@ -39,14 +41,14 @@ class Node:
             node.edgeLabels.append(label)
 
     # Gets the connected component of a node.
-    def component(self):
+    def component(self) -> List[Node]:
         Node.__comp = []
         self.__component()
 
         return Node.__comp
 
     # Auxiliary function for component.
-    def __component(self):
+    def __component(self) -> None:
         self.visited = True
         Node.__comp.append(self)
 
@@ -58,17 +60,17 @@ class Node:
 # The CD as a graph.
 class Graph:
     # Class constructor.
-    def __init__(self, array):
+    def __init__(self, array: List[Node]) -> None:
         self.array = array
         self.idx = 0
 
     # Class iterator.
-    def __iter__(self):
+    def __iter__(self) -> Graph:
         self.idx = 0
         return self
 
     # Next iterator method.
-    def __next__(self):
+    def __next__(self) -> Node:
         if self.idx < len(self.array):
             x = self.array[self.idx]
             self.idx += 1
@@ -77,8 +79,8 @@ class Graph:
         raise StopIteration
 
     # Gets the connected components of a graph.
-    def components(self):
-        components = []
+    def components(self) -> List[List[Node]]:
+        components: List[List[Node]] = []
 
         # Puts the connected components in an array.
         for node in self:

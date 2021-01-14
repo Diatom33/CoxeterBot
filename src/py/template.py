@@ -1,10 +1,11 @@
 import re
+from typing import Dict
 
 from src.py.exceptions import TemplateError
 
 # Class for reading the Infobox template.
 class Template:
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         self.text: str = text
         self.templateRegex: str = self.regex("Infobox polytope")
         match = re.search(self.templateRegex, self.text)
@@ -17,7 +18,7 @@ class Template:
 
     # Returns a regex to find the beginning of a template and its first argument (with various aliases).
     @staticmethod
-    def regex(*templates):
+    def regex(*templates: str) -> str:
         regex = r"{ *{ *"
         for template in templates:
             inner = "(" + template[0].lower() + "|" + template[0].upper() + ")" + template[1:].replace(' ', ' +') + r"\s*"
@@ -26,8 +27,8 @@ class Template:
         return regex[:-1]
 
     # Gets all fields of the template.
-    def getFields(self):
-        fields = {}
+    def getFields(self) -> Dict[str, str]:
+        fields: Dict[str, str] = {}
 
         # While inside of the infobox template:
         while self.nestLevel >= 2:
@@ -60,7 +61,7 @@ class Template:
         return fields
 
     # Gets the current character.
-    def getChar(self):
+    def getChar(self) -> str:
         return self.text[self.index]
 
     # Skips unti a certain char is found.

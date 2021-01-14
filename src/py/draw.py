@@ -1,8 +1,8 @@
+from typing import Any, Callable, List, NoReturn, Tuple, cast
 from PIL import Image, ImageDraw, ImageFont
-from src.py.node import Node, Graph
-from src.py.exceptions import CDError
+from .node import Node, Graph
+from .exceptions import CDError
 import math
-import os
 
 # Constants:
 SCALE = 0.8
@@ -35,16 +35,43 @@ HOLOSNUB_FONT = ImageFont.truetype(FONT_FILENAME, HOLOSNUB_FONT_SIZE, layout_eng
 
 PADDING = 40
 
+# Stores properties of a node that will be drawn on screen.
+class DrawNode:
+    # Class constructor.
+    def __init__(self, value: str, xy: Tuple[float, float]):
+        self.value = value # Whatever is stored in the node.
+        self.xy = xy # The coordinates of the node.
+
+        self.image: Image
+        self.draw: Any
+
+# Stores properties of an edge that will be drawn on screen.
+class DrawEdge:
+    # Class constructor.
+    def __init__(self, index0: int, index1: int, label: str, drawingMode: str):
+        self.index0 = index0 # The index of the first node in the array.
+        self.index1 = index1 # The index of the second node in the array.
+        self.label = label # The edge's label.
+        self.drawingMode = drawingMode
+
+    def __getitem__(self, key: int):
+        if key == 0:
+            return self.index0
+        else:
+            return self.index1    
+
 # Draws a graph.
 class Draw:
     # Class constructor.
-    def __init__(self, graph):
+    def __init__(self, graph: Graph) -> None:
         # Variables to see where the next node goes.
         # Provisional, probably.
-        self.x, self.y = 0, 0
+        self.x: float = 0
+        self.y: float = 0
 
         # The elements of the graph.
-        self.nodes, self.edges = [], []
+        self.nodes: List[Node] = []
+        self.edges: List[DrawEdge] = []
 
         # The bounding box of the graph.
         self.minX, self.minY, self.maxX, self.maxY = math.inf, math.inf, -math.inf, -math.inf
@@ -52,13 +79,30 @@ class Draw:
         for component in graph.components():
             self.add(component)
 
-    def currentPos(self):
+    def currentPos(self) -> Tuple[float, float]:
         return (self.x, self.y)
+
+    # Applies some function to the coordinates of a point.
+    @staticmethod
+    def applyCoord(
+        f: Callable[[float], float], 
+        coords: Tuple[float, float]
+    ) -> Tuple[float, float]:
+        return f(coords[0]), f(coords[1])
+        
+    # Applies some function to the coordinates of two points.
+    @staticmethod
+    def applyCoords(
+        f: Callable[[float, float], float], 
+        coords0: Tuple[float, float], 
+        coords1: Tuple[float, float]
+    ) -> Tuple[float, float]:
+        return f(coords0[0], coords1[0]), f(coords0[1], coords1[1])
 
     # Adds a new component to the diagram.
     # Currently, just puts everything in a straight line.
     # TODO: make this draw the trees prettily.
-    def add(self, component):
+    def add(self, component: List[Node]) -> None:
         straight, firstNode = self.isStraight(component)
 
         if straight:
@@ -103,12 +147,12 @@ class Draw:
         self.x += COMPONENT_SPACING
 
     # Adds a node in a particular position.
-    def addNode(self, node, coords, drawingMode):
+    def addNode(self, node: Node, coords: Tuple[float, float], drawingMode: str) -> None:
         # Adds the node.
-        newNode = {
-            "value": node.value,
-            "xy": (coords[0], coords[1])
-        }
+        newNode = DrawNode(
+            value = node.value,
+            xy = (coords[0], coords[1])
+        )
         self.updateBoundingBox(coords)
 
         # Adds the arrayIndex property to the node, storing its index in the array.
@@ -120,19 +164,19 @@ class Draw:
         for neighbor in node.neighbors:
             # Guarantees no duplicates.
             if hasattr(neighbor, 'arrayIndex'):
-                self.edges.append({
-                    0: neighbor.arrayIndex,
-                    1: node.arrayIndex,
-                    "label": node.edgeLabels[i],
-                    "drawingMode": drawingMode
-                })
+                self.edges.append(DrawEdge(
+                    index0 = neighbor.arrayIndex,
+                    index1 = node.arrayIndex,
+                    label = node.edgeLabels[i],
+                    drawingMode = drawingMode
+                ))
 
             i += 1
 
     # A connected graph is a line graph iff every vertex has degree ≤ 2,
     # and at least one vertex has degree 1.
     # Returns whether the graph is a line graph, and if so, its first node (in string order).
-    def isStraight(self, component):
+    def isStraight(self, component: List[Node]) -> Tuple[bool, Node]:
         if len(component) < 3:
             return (True, component[0])
 
@@ -152,11 +196,11 @@ class Draw:
         return (not isCycle, firstNode)
 
     # Transforms node coordinates to image coordinates.
-    def transformCoords(self, coords):
+    def transformCoords(self, coords: Tuple[float, float]) -> Tuple[float, float]:
         return (coords[0] - self.minX + PADDING, coords[1] - self.minY + PADDING)
 
     # Updates the bounding box of the nodes.
-    def updateBoundingBox(self, coords):
+    def updateBoundingBox(self, coords: Tuple[float, float]) -> None:
         x, y = coords
 
         self.minX = min(self.minX, x)
@@ -165,31 +209,31 @@ class Draw:
         self.maxY = max(self.maxY, y)
 
     # Gets the size of the bounding box.
-    def size(self):
+    def size(self) -> Tuple[float, float]:
         return (
             round(self.maxX - self.minX + 2 * PADDING),
             round(self.maxY - self.minY + 2 * PADDING)
         )
 
     # Draws the graph.
-    def draw(self):
+    def toImage(self) -> Image:
         self.image = Image.new('RGB', size = self.size(), color = 'white')
         self.draw = ImageDraw.Draw(self.image)
 
         # Draws the edges.
         for edge in self.edges:
-            node0, node1, label = self.nodes[edge[0]], self.nodes[edge[1]], edge['label']
+            node0, node1, label = self.nodes[edge[0]], self.nodes[edge[1]], edge.label
 
             # Edge coordinates.
             edgeXy = (
-                self.transformCoords(node0['xy']),
-                self.transformCoords(node1['xy']),
+                self.transformCoords(node0.xy),
+                self.transformCoords(node1.xy),
             )
 
             # Text coordinates.
-            textXy = list(map(lambda a, b: (a + b) / 2, edgeXy[0], edgeXy[1]))
-            if edge['drawingMode'] == 'line':
-                textXy[1] += TEXT_DISTANCE
+            textXy = Draw.applyCoords(lambda a, b: (a + b) / 2, edgeXy[0], edgeXy[1])
+            if edge.drawingMode == 'line':
+                textXy = (textXy[0], textXy[1] + TEXT_DISTANCE)
 
             # Draws edge.
             if label == 'Ø':
@@ -207,8 +251,8 @@ class Draw:
 
         # Draws each node.
         for node in self.nodes:
-            value = node['value']
-            xy = self.transformCoords(node['xy'])
+            value = node.value
+            xy = self.transformCoords(node.xy)
 
             # Chooses the fill color.
             if value == 's' or value == '+':
@@ -223,7 +267,7 @@ class Draw:
 
             # Draws the ring.
             if value != 'o' and value != 's':
-                self.__drawRing(xy = xy, radius = RING_RADIUS, fill = 'black')
+                self.__drawRing(xy = xy, radius = RING_RADIUS)
 
                 # Draws the mark.
                 if value != 'x':
@@ -240,7 +284,7 @@ class Draw:
         )
 
     # Draws an edge on the image, of one of various parts..
-    def drawEdge(self, xy, edgeType):
+    def drawEdge(self, xy: Tuple[Tuple[float, float], Tuple[float, float]], edgeType: str) -> None:
         if edgeType == 'normal':
             self.__drawLine(
                 xy = xy,
@@ -253,43 +297,44 @@ class Draw:
             dashes = 5
 
             # Direction vector of each dash.
-            delta = tuple(map(lambda x, y: (y - x) / (2 * dashes - 1), xy[0], xy[1]))
+            delta: Tuple[float, float] = Draw.applyCoords(lambda x, y: (y - x) / (2 * dashes - 1), xy[0], xy[1])
 
-            xy = list(xy)
-            xy[1] = tuple(map(lambda x, y: x + y, xy[0], delta))
+            xy = (xy[0], Draw.applyCoords(lambda x, y: x + y, xy[0], delta))
 
             for i in range(dashes):
                 self.__drawLine(
-                    xy = tuple(xy),
+                    xy = xy,
                     width = LINE_WIDTH,
                     fill = 'black'
                 )
 
-                xy[0] = tuple(map(lambda x, y: x + 2 * y, xy[0], delta))
-                xy[1] = tuple(map(lambda x, y: x + 2 * y, xy[1], delta))
+                xy = (
+                    Draw.applyCoords(lambda x, y: x + 2 * y, xy[0], delta),
+                    Draw.applyCoords(lambda x, y: x + 2 * y, xy[1], delta)
+                )
 
         elif edgeType == 'ellipsis':
             # Controls the dot spacing.
             spacing = 6
 
             # Direction vector between two ellipses.
-            delta = tuple(map(lambda x, y: (y - x) / spacing, xy[0], xy[1]))
+            delta = Draw.applyCoords(lambda x, y: (y - x) / spacing, xy[0], xy[1])
 
-            xy = tuple(map(lambda x, y: x + y * (spacing / 2 - 1), xy[0], delta))
+            circleXy = Draw.applyCoords(lambda x, y: x + y * (spacing / 2 - 1), xy[0], delta)
 
             for i in range(3):
                 self.__drawCircle(
-                    xy = xy,
+                    xy = circleXy,
                     radius = ELLIPSIS_RADIUS,
                     fill = 'black'
                 )
 
-                xy = tuple(map(lambda x, y: x + y, xy, delta))
+                circleXy = Draw.applyCoords(lambda x, y: x + y, circleXy, delta)
         else:
             self.error("Edge type not recognized.", dev = True)
 
     # Draws text with a border at some particular location.
-    def drawText(self, xy, text, textType):
+    def drawText(self, xy: Tuple[float, float], text: str, textType: str) -> None:
         # Configures text attributes.
         if textType == 'node':
             font = NODE_FONT
@@ -297,14 +342,14 @@ class Draw:
             backColor = 'black'
 
             # Offset, seems necessary for some reason.
-            xy = list(map(lambda a, b: a + b, xy, (1, -2)))
+            xy = Draw.applyCoords(lambda a, b: a + b, xy, (1, -2))
         elif textType == 'holosnub':
             font = HOLOSNUB_FONT
             foreColor = 'black'
             backColor = 'white'
 
             # Offset, seems necessary for some reason.
-            xy = list(map(lambda a, b: a + b, xy, (0.5, -3)))
+            xy = Draw.applyCoords(lambda a, b: a + b, xy, (0.5, -3))
         elif textType == 'edge':
             font = EDGE_FONT
             foreColor = 'black'
@@ -313,8 +358,8 @@ class Draw:
             self.error("Text type not recognized.", dev = True)
 
         # Positions text correctly.
-        textSize = self.draw.textsize(text = text, font = font)
-        xy = list(map(lambda a, b: a - b / 2, xy, textSize))
+        textSize: Tuple[float, float] = self.draw.textsize(text = text, font = font)
+        xy = Draw.applyCoords(lambda a, b: a - b / 2, xy, textSize)
 
         # Draws border.
         self.__drawText(xy = (xy[0] - FONT_OUTLINE, xy[1]), text = text, fill = backColor, font = font)
@@ -326,9 +371,9 @@ class Draw:
         self.__drawText(xy = xy, text = text, fill = foreColor, font = font)
 
     # Primitive to draw a line on the image.
-    def __drawLine(self, xy, width, fill):
+    def __drawLine(self, xy: Tuple[Tuple[float, float], Tuple[float, float]], width: int, fill: str) -> None:
         # Rounds coordinates.
-        xy = tuple(map(lambda x: tuple(map(round, x)), xy))
+        xy = Draw.applyCoord(round, xy[0]), Draw.applyCoord(round, xy[1])
 
         self.draw.line(
             xy = xy,
@@ -337,26 +382,32 @@ class Draw:
         )
 
     # Primitive to draw a circle on the image.
-    def __drawCircle(self, xy, radius, fill):
+    def __drawCircle(self, xy: Tuple[float, float], radius: int, fill: str) -> None:
         # Rounds coordinates.
         x, y = xy
-        xy = tuple(map(round, (x - radius, y - radius, x + radius, y + radius)))
+        circleXy = (
+            Draw.applyCoord(round, (x - radius, y - radius)),
+            Draw.applyCoord(round, (x + radius, y + radius))
+        )
 
         self.draw.ellipse(
-            xy = xy,
+            xy = circleXy,
             fill = fill,
             outline = 'black',
             width = NODE_BORDER_WIDTH
         )
 
     # Primitive to draw a ring on the image.
-    def __drawRing(self, xy, radius, fill):
+    def __drawRing(self, xy: Tuple[float, float], radius: int) -> None:
         # Rounds coordinates.
         x, y = xy
-        xy = tuple(map(round, (x - radius, y - radius, x + radius, y + radius)))
+        ringXy = (
+            Draw.applyCoord(round, (x - radius, y - radius)),
+            Draw.applyCoord(round, (x + radius, y + radius))
+        )
 
-        self.draw.arc(
-            xy = xy,
+        self.draw.arc( # type: ignore
+            xy = ringXy,
             start = 0,
             end = 360,
             fill = 'black',
@@ -364,19 +415,19 @@ class Draw:
         )
 
     # Primitive to draw text on the image.
-    def __drawText(self, xy, text, fill, font):
-        xy = tuple(map(round, xy))
+    def __drawText(self, xy: Tuple[float, float], text: str, fill: str, font: ImageFont) -> None:
+        xy = Draw.applyCoord(round, xy)
         self.draw.text(xy = xy, text = text, fill = fill, font = font)
 
     # Shows the graph.
-    def show(self):
-        self.draw().show()
+    def show(self) -> None:
+        self.toImage().show()
 
     # Saves the graph.
-    def save(self, *args):
-        self.draw().save(*args)
+    def save(self, *args) -> None:
+        self.toImage().save(*args)
 
-    def error(self, text, dev = False):
+    def error(self, text, dev = False) -> NoReturn:
         msg = f"Graph drawing failed. {text}"
 
         if dev:
