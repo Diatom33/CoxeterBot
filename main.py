@@ -20,7 +20,7 @@ from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
-PREFIX = open("src/txt/PREFIX.txt", "r").read()
+PREFIX = open("src/txt/PREFIX.txt", "r").read().rstrip()
 DEBUG = False
 
 # Users to ping on unexpected error:
