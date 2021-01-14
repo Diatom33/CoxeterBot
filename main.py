@@ -443,6 +443,14 @@ async def prefix(ctx, *args: str) -> None:
 
         open("src/txt/PREFIX.txt", "w").write(PREFIX)
 
+        await client.change_presence(
+            status = discord.Status.online,
+            activity = discord.Activity(
+                type = discord.ActivityType.watching,
+                name = PREFIX + "help"
+            )
+        )
+
         a_logger.info(f"INFO: prefix changed to {newPrefix}")
         await ctx.send(f"Prefix changed to {PREFIX}")
 
