@@ -11,7 +11,7 @@ class NodeRef:
     def __init__(self, index: int, pos: int):
         self.index: int = index
         self.pos: int = pos
-        
+
 # Stores the indexes of an edge's nodes, and its label.
 class EdgeRef:
     def __init__(self, index0: Optional[NodeRef], index1: Optional[NodeRef], label: str) -> None:

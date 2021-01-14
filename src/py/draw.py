@@ -57,7 +57,7 @@ class DrawEdge:
     def __getitem__(self, key: int):
         if key == 0:
             return self.index0
-        return self.index1    
+        return self.index1
 
 # Draws a graph.
 class Draw:
@@ -84,16 +84,16 @@ class Draw:
     # Applies some function to the coordinates of a point.
     @staticmethod
     def applyCoord(
-        f: Callable[[float], float], 
+        f: Callable[[float], float],
         coords: Tuple[float, float]
     ) -> Tuple[float, float]:
         return f(coords[0]), f(coords[1])
-        
+
     # Applies some function to the coordinates of two points.
     @staticmethod
     def applyCoords(
-        f: Callable[[float, float], float], 
-        coords0: Tuple[float, float], 
+        f: Callable[[float, float], float],
+        coords0: Tuple[float, float],
         coords1: Tuple[float, float]
     ) -> Tuple[float, float]:
         return f(coords0[0], coords1[0]), f(coords0[1], coords1[1])

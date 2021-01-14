@@ -1,34 +1,47 @@
 import re
 from typing import Callable, Dict, Tuple, Union
-from .template import Template
 
-def parse(fieldList: Dict[str, str]) -> Dict[str, str]:
+from mwparserfromhell.wikicode import Wikicode
+
+def parse(params) -> Dict[str, str]:
+    # A dictionary of parsed parameter names and values.
     parseFieldList: Dict[str, str] = {}
 
-    for field, value in fieldList.items():
-        if field in parsers:
-            parser = parsers[field]
-            if isinstance(parser, str):
-                field = parser
-            else:
-                field, value = parser(value)
-            parseFieldList[field] = value
+    # For each of the template's parameters:
+    for param in params:
+        name: Wikicode = param.name
+        code: Wikicode = param.value
+
+        # Compares the param name to the list of parsers.
+        for key, parser in parsers.items():
+            if name.matches(key):
+                # If the parser is a string, simply replaces the name.
+                if isinstance(parser, str):
+                    newName, newValue = stringFormat(parser, code)
+                # If the parser is a function, applies it.
+                else:
+                    newName, newValue = parser(code)
+
+                # Adds the new name and new value to the dictionary.
+                parseFieldList[newName] = newValue
 
     return parseFieldList
 
 # We should remove italics and bold, but preserve links.
-def stringFormat(field: str, value: str) -> Tuple[str, str]:
-    return field, value
+def stringFormat(name: str, code: Wikicode) -> Tuple[str, str]:
+    return name, str(code).rstrip()
 
 # Cleans up a CD.
-def cd(value: str) -> Tuple[str, str]:
-    regex = r'\(?' + Template.regex("CDD", "Coxeter-Dynkin Diagram")
-    match = re.search(regex, value)
+def cd(code: Wikicode) -> Tuple[str, str]:
+    # Removes all graphical CDs.
+    for template in code.filter_templates():
+        if template.name.matches(["CDD", "Coxeter-Dynkin Diagram"]):
+            code.remove(template)
 
-    if match is not None:
-        value = value[:match.span()[0]].rstrip()
+    # If the CDs were parenthesized, empty parentheses () will remain, so we remove them.
+    code.replace('()', '')
 
-    return stringFormat('Coxeter diagram', value)
+    return stringFormat('Coxeter diagram', code)
 
 parsers: Dict[str, Union[str, Callable[[str], Tuple[str, str]]]] = {
     'dimension': "Dimensions",

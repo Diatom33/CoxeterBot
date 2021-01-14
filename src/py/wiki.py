@@ -1,9 +1,10 @@
-from src.py.exceptions import RedirectCycle
-from src.py.template import Template
+from src.py.exceptions import RedirectCycle, TemplateError
 from src.py import parser as parser
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import AssertUserFailedError
+
+import mwparserfromhell
 
 from typing import Dict
 
@@ -28,9 +29,15 @@ class Wiki:
 
     # Gets all fields from a page's Infobox.
     def getFields(self, page: Page) -> Dict[str, str]:
-        return parser.parse( # type: ignore
-            Template(page.text()).getFields()
-        )
+        wikicode = mwparserfromhell.parse(page.text())
+
+        for template in wikicode.filter_templates():
+            if template.name.matches("Infobox polytope"):
+                return parser.parse( # type: ignore
+                    template.params
+                )
+
+        raise TemplateError("Infobox polytope not found.")
 
     # Gets a single field from a page's Infobox.
     def getField(self, title: str, field: str) -> str:
