@@ -21,7 +21,7 @@ from mwclient.errors import InvalidPageTitle
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read()
-DEBUG = True
+DEBUG = False
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
@@ -385,7 +385,12 @@ async def info(ctx, *args: str) -> None:
 
         # Tries to get the item info.
         try:
-            fieldList = Wiki.getFields(article)
+            page = Wiki.page(article, redirect = True)
+            if not page.exists:                
+                await error(ctx, f"The requested page {article} does not exist.", dev = False)
+                return
+
+            fieldList = Wiki.getFields(page)
 
         # Title contains non-standard characters.
         except InvalidPageTitle as e:

@@ -9,16 +9,15 @@ from typing import Dict
 
 # A wrapper for mwclient.
 class Wiki:
-    fullURL = ""
+    fullURL = "https://polytope.miraheze.org/wiki/"
 
     # Class initializer.
     def __init__(self) -> None:
         self.username = 'OfficialURL@CoxeterBot'
         self.userAgent = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
 
-        self.URL = "polytope.miraheze.org/"
-        self.fullURL = 'https://' + self.URL + 'wiki/'
-        Wiki.fullURL = self.fullURL
+        self.fullURL = Wiki.fullURL
+        self.URL = Wiki.fullURL[8:-5]
 
         self.site = Site(self.URL, clients_useragent = self.userAgent)
         self.login()
@@ -28,11 +27,9 @@ class Wiki:
         self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
 
     # Gets all fields from a page's Infobox.
-    def getFields(self, title: str) -> Dict[str, str]:
+    def getFields(self, page: Page) -> Dict[str, str]:
         return parser.parse( # type: ignore
-            Template(
-                self.page(title, redirect = True).text()
-            ).getFields()
+            Template(page.text()).getFields()
         )
 
     # Gets a single field from a page's Infobox.
