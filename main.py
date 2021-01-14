@@ -441,7 +441,7 @@ async def prefix(ctx, *args: str) -> None:
         PREFIX = newPrefix
         client.command_prefix = PREFIX
 
-        open("../txt/PREFIX.txt", "w").write(PREFIX)
+        open("src/txt/PREFIX.txt", "w").write(PREFIX)
 
         a_logger.info(f"INFO: prefix changed to {newPrefix}")
         await ctx.send(f"Prefix changed to {PREFIX}")
