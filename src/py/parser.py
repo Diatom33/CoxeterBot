@@ -39,7 +39,11 @@ def cd(code: Wikicode) -> Tuple[str, str]:
             code.remove(template)
 
     # If the CDs were parenthesized, empty parentheses () will remain, so we remove them.
-    code.replace('()', '')
+    try:
+        code.replace('()', '')
+    # The code throws an error if it doesn't find any matches, but we don't care.
+    except ValueError:
+        pass
 
     return stringFormat('Coxeter diagram', code)
 
