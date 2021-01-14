@@ -1,7 +1,6 @@
-#!/usr/bin/python3.9
-
 import asyncio
 import discord
+from discord.embeds import Embed
 from discord.ext import commands
 
 import sys
@@ -16,6 +15,7 @@ from src.py.cd import CD
 from src.py.exceptions import CDError, RedirectCycle, TemplateError
 from src.py.draw import Draw
 from src.py.wiki import Wiki as WikiClass
+import src.py.explanation as explanation
 from mwclient.errors import InvalidPageTitle
 
 # Basic constants.
@@ -27,9 +27,6 @@ DEBUG = True
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
             # URL                 # Diatom              # Cirro               # Galoomba
 
-# ID of Wiki Contributor role.
-ROLE_ID = "<@&699404888127569981>"
-
 # General config.
 Wiki = WikiClass()
 client = commands.Bot(command_prefix = PREFIX)
@@ -37,7 +34,7 @@ fileCount = 0
 
 # Runs on client ready.
 @client.event
-async def on_ready():
+async def on_ready() -> None:
     await client.change_presence(
         status = discord.Status.online,
         activity = discord.Activity(
@@ -51,24 +48,6 @@ async def on_ready():
 
 # Shows a help screen with a command list.
 client.remove_command("help")
-
-helpShortExplanation = "Shows in-depth help for a given command."
-cdShortExplanation = (
-    "Renders a [Coxeter–Dynkin Diagram](https://polytope.miraheze.org/wiki/Coxeter_diagram), "
-    "based on [Richard Klitzing's notation]"
-    "(https://bendwavy.org/klitzing/explain/dynkin-notation.htm)."
-)
-wikiShortExplanation = (
-    "Searches for a given article within the "
-    f"[Polytope Wiki]({Wiki.fullURL}). Resolves redirects automatically."
-)
-redirectShortExplanation = (
-    "Automatically creates a redirect between two articles on the wiki. "
-    "Resolves existing redirects automatically. "
-    f"Can only be used by {ROLE_ID}."
-)
-searchShortExplanation = "Searches for an article on the wiki."
-infoShortExplanation = "Gets a shape's info from its infobox on the wiki."
 
 @client.command(pass_context = True)
 async def help(ctx, *args: str) -> None:
@@ -84,37 +63,37 @@ async def help(ctx, *args: str) -> None:
 
         helpEmbed.add_field(
             name = f"`{PREFIX}help`",
-            value = helpShortExplanation,
+            value = explanation.help,
             inline = False
         )
 
         helpEmbed.add_field(
             name = f"`{PREFIX}cd [linearized diagram]`",
-            value = cdShortExplanation,
+            value = explanation.cd,
             inline = False
         )
 
         helpEmbed.add_field(
             name = f"`{PREFIX}wiki [article name]`",
-            value = wikiShortExplanation,
+            value = explanation.wiki,
             inline = False
         )
 
         helpEmbed.add_field(
             name = f"`{PREFIX}redirect [origin] [target]`",
-            value = redirectShortExplanation,
+            value = explanation.redirect,
             inline = False
         )
 
         helpEmbed.add_field(
             name = f"`{PREFIX}search [key]`",
-            value = searchShortExplanation,
+            value = explanation.search,
             inline = False
         )
 
         helpEmbed.add_field(
             name = f"`{PREFIX}info [shape]`",
-            value = infoShortExplanation,
+            value = explanation.info,
             inline = False
         )
 
@@ -123,7 +102,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'help':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = helpShortExplanation,
+            shortExplanation = explanation.help,
             examples = (
                 f"`{PREFIX}help help`: Shows this embed.\n"
                 f"`{PREFIX}help cd`: Shows help for the `cd` command."
@@ -133,7 +112,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'cd':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = wikiShortExplanation,
+            shortExplanation = explanation.cd,
             examples = (
                 f"`{PREFIX}cd x3o3o`: A simple diagram.\n"
                 f"`{PREFIX}cd s3s4o3x`: A diagram with various node types.\n"
@@ -145,7 +124,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'wiki':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = wikiShortExplanation,
+            shortExplanation = explanation.wiki,
             examples = (
                 f"`{PREFIX}wiki cube`: Links to the **Cube** article.\n"
                 f"`{PREFIX}wiki x3o3o`: Links to the **Tetrahedron** article."
@@ -155,7 +134,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'redirect':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = redirectShortExplanation,
+            shortExplanation = explanation.redirect,
             examples = (
                 f"`{PREFIX}redirect x3o3o tetrahedron`: Redirects the **X3o3o** article to **Tetrahedron**.\n"
                 f"`{PREFIX}redirect x3o5o ike`: Redirects the **X3o5o** article to **Icosahedron**.\n"
@@ -166,7 +145,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'search':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = searchShortExplanation,
+            shortExplanation = explanation.search,
             examples = (
                 f"`{PREFIX}search dodecahedron`: Gets the wiki results for \"dodecahedron\".\n"
                 f"`{PREFIX}search great stellated`: Gets the wiki results for \"great stellated\"."
@@ -176,7 +155,7 @@ async def help(ctx, *args: str) -> None:
     elif command == 'info':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
-            shortExplanation = infoShortExplanation,
+            shortExplanation = explanation.info,
             examples = (
                 f"`{PREFIX}info square`: Gets the info for a square.\n"
                 f"`{PREFIX}info great dodecahedron`: Gets the info for a great dodecahedron."
@@ -358,7 +337,7 @@ async def redirect(ctx, *args: str):
 
 # Creates a wiki redirect.
 @client.command()
-async def search(ctx, *args: str):
+async def search(ctx, *args: str) -> None:
     try:
         key = ' '.join(args)
         a_logger.info(f"COMMAND: search {key}")
@@ -394,7 +373,7 @@ async def search(ctx, *args: str):
 
 # Searches for a field in a wiki page.
 @client.command()
-async def info(ctx, *args):
+async def info(ctx, *args: str) -> None:
     try:
         article = ' '.join(args)
         a_logger.info(f"COMMAND: info {article}")
@@ -438,7 +417,7 @@ async def info(ctx, *args):
 
 # Dev command, shows the client latency.
 @client.command()
-async def ping(ctx):
+async def ping(ctx) -> None:
     a_logger.info(f"COMMAND: ping")
 
     latency = round(client.latency * 1000)
@@ -448,7 +427,7 @@ async def ping(ctx):
 # Changes the bot prefix.
 @commands.has_permissions(administrator = True)
 @client.command()
-async def prefix(ctx, *args):
+async def prefix(ctx, *args: str) -> None:
     try:
         newPrefix = ' '.join(args)
         a_logger.info(f"COMMAND: prefix {newPrefix}")
@@ -471,7 +450,7 @@ async def prefix(ctx, *args):
 # Logs an error and posts it.
 # dev signifies that the error is on the developers' fault.
 # Otherwise, the error is a user error.
-async def error(ctx, text, dev = False):
+async def error(ctx, text: str, dev: bool = False) -> None:
     if dev:
         logMsg = f"UNEXPECTED ERROR: {text}"
         msg = f"```UNEXPECTED ERROR: {text}```\n"
@@ -488,7 +467,7 @@ async def error(ctx, text, dev = False):
     await ctx.send(msg)
 
 # Creates a help embed for a given command.
-def commandHelpEmbed(command, shortExplanation, examples):
+def commandHelpEmbed(command: str, shortExplanation: str, examples: str) -> Embed:
     embed = discord.Embed(
         colour = discord.Colour.blue(),
         title = f"Command Help: {command}"

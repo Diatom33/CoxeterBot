@@ -57,8 +57,7 @@ class DrawEdge:
     def __getitem__(self, key: int):
         if key == 0:
             return self.index0
-        else:
-            return self.index1    
+        return self.index1    
 
 # Draws a graph.
 class Draw:

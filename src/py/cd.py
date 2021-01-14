@@ -9,8 +9,20 @@ MAX_LEN = 100 # Hardcoded node limit.
 # Stores the index of a node, and its position in the string.
 class NodeRef:
     def __init__(self, index: int, pos: int):
-        self.index = index
-        self.pos = pos
+        self.index: int = index
+        self.pos: int = pos
+        
+# Stores the indexes of an edge's nodes, and its label.
+class EdgeRef:
+    def __init__(self, index0: Optional[NodeRef], index1: Optional[NodeRef], label: str) -> None:
+        self.index0: Optional[NodeRef] = index0
+        self.index1: Optional[NodeRef] = index1
+        self.label: str = label
+
+    def __getitem__(self, key) -> Optional[NodeRef]:
+        if key == 0:
+            return self.index0
+        return self.index1
 
 # Various regexes:
 numberRegex = "([1-9][0-9]*)"
@@ -42,8 +54,8 @@ class CD:
     # Class initializer.
     def __init__(self, string: str):
         # The index of the CD at which we're reading.
-        self.index = 0
-        self.string = string
+        self.index: int = 0
+        self.string: str = string
 
     # Tries to match a regex at certain point in the string.
     def matchRegex(self, regex: str) -> Optional[str]:
@@ -68,7 +80,7 @@ class CD:
         return self.matchRegex(edgeLabels) or ""
 
     # Reads a virtual node from a given position.
-    def readVirtualNode(self, nodeType):
+    def readVirtualNode(self, nodeType: str) -> Optional[str]:
         if nodeType == 'letter':
             return self.matchRegex(virtualNodesLetter)
         elif nodeType == 'number':
@@ -179,11 +191,11 @@ class CD:
             # Links two nodes if necessary.
             if linkNodes:
                 if not (prevNodeRef is None or edgeLabel == ""):
-                    edges.append({
-                        0: newNodeRef,
-                        1: prevNodeRef,
-                        "label": edgeLabel,
-                    })
+                    edges.append(EdgeRef(
+                        index0 = newNodeRef,
+                        index1 = prevNodeRef,
+                        label = edgeLabel,
+                    ))
 
                 # Updates variables.
                 linkNodes = False
@@ -213,7 +225,7 @@ class CD:
                 # Configures where the error will appear.
                 self.index = max(edge[0].pos, edge[1].pos)
 
-                nodes[edge[0].index].linkTo(nodes[edge[1].index], edge["label"])
+                nodes[edge[0].index].linkTo(nodes[edge[1].index], edge.label)
             except CDError as e:
                 self.error(str(e))
 

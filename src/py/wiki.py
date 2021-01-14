@@ -9,6 +9,8 @@ from typing import Dict
 
 # A wrapper for mwclient.
 class Wiki:
+    fullURL = ""
+
     # Class initializer.
     def __init__(self) -> None:
         self.username = 'OfficialURL@CoxeterBot'
@@ -16,6 +18,7 @@ class Wiki:
 
         self.URL = "polytope.miraheze.org/"
         self.fullURL = 'https://' + self.URL + 'wiki/'
+        Wiki.fullURL = self.fullURL
 
         self.site = Site(self.URL, clients_useragent = self.userAgent)
         self.login()
@@ -26,7 +29,7 @@ class Wiki:
 
     # Gets all fields from a page's Infobox.
     def getFields(self, title: str) -> Dict[str, str]:
-        return parser.parse(
+        return parser.parse( # type: ignore
             Template(
                 self.page(title, redirect = True).text()
             ).getFields()
@@ -91,9 +94,14 @@ class Wiki:
 
     # Redirects a page to another.
     # Does not perform any checks to see whether the pages exist, etc.
-    def redirect(self, originPage, targetPage):
+    MAX_TRIES = 3
+    def redirect(self, originPage, targetPage, tries = 0) -> None:
         try:
             originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
         except AssertUserFailedError:
             self.login()
-            self.redirect(originPage, targetPage)
+
+            if tries < Wiki.MAX_TRIES:
+                self.redirect(originPage, targetPage, tries + 1)
+            else:
+                raise ConnectionRefusedError("Could not connect to the Polytope Wiki.")
