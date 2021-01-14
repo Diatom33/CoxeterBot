@@ -412,7 +412,10 @@ async def info(ctx, *args: str) -> None:
         for field, value in fieldList.items():
             msg += f"**{field}:** {value}" + '\n'
 
-        await ctx.send(msg)
+        if msg != "":
+            await ctx.send(msg)
+        else:
+            await error(ctx, str("No valid fields found on the infobox."), dev = False)
 
     # Unexpected error.
     except Exception as e:

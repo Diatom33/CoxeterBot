@@ -62,7 +62,9 @@ class Template:
 
     # Gets the current character.
     def getChar(self) -> str:
-        return self.text[self.index]
+        if self.index < len(self.text):
+            return self.text[self.index]
+        raise TemplateError("Template end reached. There may be mismatched brackets.")
 
     # Skips unti a certain char is found.
     def seekFor(self, char: str) -> int:
