@@ -165,7 +165,7 @@ async def help(ctx, *args: str) -> None:
         await ctx.send(f"Command `{command}` not recognized.")
 
 # Shows a Coxeter-Dynkin diagram.
-@client.command()
+@client.command(aliases = [":cd:", "💿"])
 async def cd(ctx, *args: str) -> None:
     try:
         cd = ' '.join(args)
@@ -175,6 +175,8 @@ async def cd(ctx, *args: str) -> None:
             await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
         elif cd == 'play':
             await ctx.send(":cd: :play_pause:")
+        elif cd == "c":
+            await ctx.send("https://cdc.gov")
         else:
             try:
                 temp = Draw(CD(cd).toGraph()).toImage()
@@ -424,7 +426,7 @@ async def info(ctx, *args: str) -> None:
         return
 
 # Dev command, shows the client latency.
-@client.command()
+@client.command(aliases = [":ping_pong:", "🏓"])
 async def ping(ctx) -> None:
     a_logger.info(f"COMMAND: ping")
 
