@@ -1,5 +1,4 @@
-import re
-from typing import Callable, Dict, Tuple, Union
+from typing import Dict, Optional
 
 from mwparserfromhell.wikicode import Wikicode
 
@@ -13,26 +12,34 @@ def parse(params) -> Dict[str, str]:
         code: Wikicode = param.value
 
         # Compares the param name to the list of parsers.
-        for key, parser in parsers.items():
-            if name.matches(key):
-                # If the parser is a string, simply replaces the name.
-                if isinstance(parser, str):
-                    newName, newValue = stringFormat(parser, code)
-                # If the parser is a function, applies it.
-                else:
-                    newName, newValue = parser(code)
+        newName = getFieldName(str(name))
+        if newName is not None:
+            if newName in parsers:
+                newCode = (parsers[newName])(code)
+            else:
+                newCode = code
 
-                # Adds the new name and new value to the dictionary.
-                parseFieldList[newName] = newValue
+            # Adds the new name and new value to the dictionary.
+            parseFieldList[newName] = stringFormat(newCode)
 
-    return parseFieldList
+    # Adds default values for missing fields.
+    return addDefaults(parseFieldList)
+
+# Translates a wiki infobox name to a human-readable field name.
+# We call the former "wiki fields", the latter simply "fields".
+def getFieldName(wikiField: str) -> Optional[str]:
+    wikiField = wikiField.lower().strip()
+
+    if wikiField in fieldTranslator:
+        return fieldTranslator[wikiField]
+    return None
 
 # We should remove italics and bold, but preserve links.
-def stringFormat(name: str, code: Wikicode) -> Tuple[str, str]:
-    return name, str(code).rstrip()
+def stringFormat(code: Wikicode) -> str:
+    return str(code).strip()
 
 # Cleans up a CD.
-def cd(code: Wikicode) -> Tuple[str, str]:
+def cd(code: Wikicode) -> Wikicode:
     # Removes all graphical CDs.
     for template in code.filter_templates():
         if template.name.matches(["CDD", "Coxeter-Dynkin Diagram"]):
@@ -45,29 +52,73 @@ def cd(code: Wikicode) -> Tuple[str, str]:
     except ValueError:
         pass
 
-    return stringFormat('Coxeter diagram', code)
+    return code
 
-parsers: Dict[str, Union[str, Callable[[str], Tuple[str, str]]]] = {
+# Cleans up a field by simply adding uppercase.
+def uppercase(code: Wikicode) -> str:
+    return str(code).title()
+
+def addDefaults(fieldList: Dict[str, str]) -> Dict[str, str]:
+    # First removes empty attributes.
+    for name, value in fieldList.items():
+        if value == '':
+            del fieldList[name]
+
+    for name, replace in defaults.items():
+        if name not in fieldList:
+            fieldList[name] = replace
+
+    return fieldList
+
+defaults: Dict[str, str] = {
+    'Space': 'Spherical'
+}
+
+fieldTranslator: Dict[str, str] = {
     'dimension': "Dimensions",
     'dim': "Dimensions",
     'dimensions': "Dimensions",
     'rank': "Dimensions",
     'type': "Type",
     'space': "Space",
-    'acronym': "BSA",
-    'obsa': "Bowers Style Acronym",
-    'bsa': "Bowers Style Acronym",
-    'ubsa': "Bowers Style Acronym",
-    'csymbol': cd,
-    'cox': cd,
-    'coxeter': cd,
-    'cd': cd,
-    'cdd': cd,
+    'acronym': "Bowers style acronym",
+    'obsa': "Bowers style acronym",
+    'bsa': "Bowers style acronym",
+    'ubsa': "Bowers style acronym",
+
+    'csymbol': 'Coxeter diagram',
+    'cox': 'Coxeter diagram',
+    'coxeter': 'Coxeter diagram',
+    'cd': 'Coxeter diagram',
+    'cdd': 'Coxeter diagram',
     'schlafli': 'Schläfli symbol',
     'schläfli': 'Schläfli symbol',
+    'taper': 'Tapertopic notation',
+    'tapertopic': 'Tapertopic notation',
+    'bracket': 'Bracket notation',
     'symmetry': 'Symmetry',
     'army': 'Army',
     'reg': 'Regiment',
     'regiment': 'Regiment',
-    'company': 'Company'
+    'company': 'Company',
+
+    'pieces': 'Number of pieces',
+    'loc': 'Level of complexity',
+    'convex': 'Convex',
+    'conv': 'Convex',
+    'orientable': 'Orientable',
+    'orient': 'Orientable',
+    'nature': 'Nature',
+    'nat': 'Nature',
+
+    'dual': 'Dual',
+    'conjugate': 'Conjugate',
+    'conj': 'Conjugate'
+}
+
+parsers = {
+    'Coxeter diagram': cd,
+    'Convex': uppercase,
+    'Orientable': uppercase,
+    'Nature': uppercase
 }

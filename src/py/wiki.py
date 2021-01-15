@@ -6,7 +6,7 @@ from mwclient.errors import AssertUserFailedError
 
 import mwparserfromhell
 
-from typing import Dict
+from typing import Dict, Tuple
 
 # A wrapper for mwclient.
 class Wiki:
@@ -40,8 +40,9 @@ class Wiki:
         raise TemplateError("Infobox polytope not found.")
 
     # Gets a single field from a page's Infobox.
-    def getField(self, title: str, field: str) -> str:
-        return self.getFields(title)[field]
+    def getField(self, page: Page, wikiField: str) -> Tuple[str, str]:
+        fieldName = parser.getFieldName(wikiField)
+        return fieldName, self.getFields(page)[fieldName]
 
     # Returns a Page object with a given title.
     # If redirect, goes through the whole redirect chain.

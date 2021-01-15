@@ -8,8 +8,9 @@ import logging
 import datetime
 import traceback
 import os
-import requests
 import asyncio
+
+from requests.exceptions import ReadTimeout
 
 from src.py.cd import CD
 from src.py.exceptions import CDError, RedirectCycle, TemplateError
@@ -219,14 +220,9 @@ async def wiki(ctx, *args: str) -> None:
         try:
             page = Wiki.page(title, redirect = True)
 
-        # Title contains non-standard characters.
-        except InvalidPageTitle as e:
+        # Any of the possible errors when reading a page.
+        except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
             await error(ctx, str(e), dev = False)
-            return
-
-        # Redirect chain found.
-        except RedirectCycle as e:
-            await error(ctx, str(e))
             return
 
         # Formats and posts the URL.
@@ -276,18 +272,8 @@ async def redirect(ctx, *args: str):
             redirectTitle = redirectPage.name
             redirectPage = Wiki.page(args[1], redirect = True)
 
-        # Title contains non-standard characters.
-        except InvalidPageTitle as e:
-            await error(ctx, str(e), dev = False)
-            return
-
-        # Redirect chain found.
-        except RedirectCycle as e:
-            await error(ctx, str(e), dev = False)
-            return
-
-        # Request time out.
-        except requests.exceptions.ReadTimeout as e:
+        # Any of the possible errors when reading a page.
+        except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
             await error(ctx, str(e), dev = False)
             return
 
@@ -374,6 +360,26 @@ async def search(ctx, *args: str) -> None:
         return
 
 # Searches for a field in a wiki page.
+@client.command()
+async def get(ctx, field: str, *args: str) -> None:
+    title = ' '.join(args)
+
+    try:
+        page = Wiki.page(title, redirect = True)
+
+    # Any of the possible errors when reading a page.
+    except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
+        await error(ctx, str(e), dev = False)
+        return
+
+    fieldName, value = Wiki.getField(page, field)
+
+    if fieldName == 'Coxeter diagram':
+        await cd(ctx, value)
+    else:
+        await ctx.send(f"**{fieldName}:** {value}")
+
+# Posts all fields in a wiki page.
 @client.command()
 async def info(ctx, *args: str) -> None:
     try:
