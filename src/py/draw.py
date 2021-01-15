@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, NoReturn, Tuple, cast
 from PIL import Image, ImageDraw, ImageFont
-from .node import Node, Graph
-from .exceptions import CDError
+from src.py.node import Node, Graph
+from src.py.exceptions import CDError
 import math
 
 # Constants:
@@ -189,7 +189,7 @@ class Draw:
                 return (False, None)
             elif degree == 1:
                 isCycle = False
-                if firstNode is None or firstNode.stringIndex > node.stringIndex:
+                if (firstNode is None) or (firstNode.stringIndex > node.stringIndex): # type: ignore
                     firstNode = node
 
         return (not isCycle, firstNode)
@@ -405,7 +405,7 @@ class Draw:
             Draw.applyCoord(round, (x + radius, y + radius))
         )
 
-        self.draw.arc( # type: ignore
+        self.draw.arc(
             xy = ringXy,
             start = 0,
             end = 360,

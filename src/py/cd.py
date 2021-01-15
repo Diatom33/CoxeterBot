@@ -1,8 +1,8 @@
 import re
-from .node import Node, Graph
-from .exceptions import CDError
+from src.py.node import Node, Graph
+from src.py.exceptions import CDError
 
-from typing import List, NoReturn, Optional, Union
+from typing import List, NoReturn, Optional
 
 MAX_LEN = 100 # Hardcoded node limit.
 

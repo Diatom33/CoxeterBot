@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from .exceptions import CDError
+from src.py.exceptions import CDError
 
 # Nodes in a CD.
 class Node:

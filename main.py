@@ -1,4 +1,3 @@
-import asyncio
 import discord
 from discord.embeds import Embed
 from discord.ext import commands
@@ -8,16 +7,15 @@ import logging
 import datetime
 import traceback
 import os
-import asyncio
 
 from requests.exceptions import ReadTimeout
 
 from src.py.cd import CD
-from src.py.exceptions import CDError, RedirectCycle, TemplateError
+from src.py.exceptions import CDError, TemplateError
 from src.py.draw import Draw
 from src.py.wiki import Wiki as WikiClass
 import src.py.explanation as explanation
-from mwclient.errors import InvalidPageTitle
+from mwclient.errors import MwClientError
 
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
@@ -199,8 +197,6 @@ async def cd(ctx, *args: str) -> None:
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-        return
 
 # Posts the link to a wiki article.
 @client.command()
@@ -210,7 +206,7 @@ async def wiki(ctx, *args: str) -> None:
 
         # Displays help.
         if title == '':
-            await ctx.send("Usage: `?wiki cube`. Run `?help wiki` for details.")
+            await ctx.send(f"Usage: `{PREFIX}wiki cube`. Run `{PREFIX}help wiki` for details.")
             return
 
         a_logger.info(f"COMMAND: wiki {title}")
@@ -221,7 +217,7 @@ async def wiki(ctx, *args: str) -> None:
             page = Wiki.page(title, redirect = True)
 
         # Any of the possible errors when reading a page.
-        except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
+        except (MwClientError, ReadTimeout) as e:
             await error(ctx, str(e), dev = False)
             return
 
@@ -243,8 +239,6 @@ async def wiki(ctx, *args: str) -> None:
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-        return
 
 # Creates a wiki redirect.
 @client.command()
@@ -255,7 +249,7 @@ async def redirect(ctx, *args: str):
 
         # Shows command help.
         if len(args) == 0:
-            await ctx.send("Usage: `?redirect x4o3o cube`. Run `?help redirect` for details.")
+            await ctx.send(f"Usage: `{PREFIX}redirect x4o3o cube`. Run `{PREFIX}help redirect` for details.")
             return
         elif len(args) == 1:
             await error(ctx, f"2 arguments expected, got 1.", dev = False)
@@ -273,7 +267,7 @@ async def redirect(ctx, *args: str):
             redirectPage = Wiki.page(args[1], redirect = True)
 
         # Any of the possible errors when reading a page.
-        except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
+        except (MwClientError, ReadTimeout) as e:
             await error(ctx, str(e), dev = False)
             return
 
@@ -306,7 +300,7 @@ async def redirect(ctx, *args: str):
                 timeout = 30
             )
         # Neither confirmed nor denied.
-        except asyncio.exceptions.TimeoutError as e:
+        except TimeoutError as e:
             await error(ctx, "Redirect timed out.", dev = False)
             return
 
@@ -320,8 +314,6 @@ async def redirect(ctx, *args: str):
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-        return
 
 # Creates a wiki redirect.
 @client.command()
@@ -356,28 +348,44 @@ async def search(ctx, *args: str) -> None:
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-        return
 
 # Searches for a field in a wiki page.
 @client.command()
-async def get(ctx, field: str, *args: str) -> None:
-    title = ' '.join(args)
-
+async def get(ctx, *args: str) -> None:
     try:
-        page = Wiki.page(title, redirect = True)
+        a_logger.info(f"COMMAND: redirect {args}")
 
-    # Any of the possible errors when reading a page.
-    except (InvalidPageTitle, RedirectCycle, ReadTimeout) as e:
-        await error(ctx, str(e), dev = False)
+        # Shows command help.
+        if len(args) == 0:
+            await ctx.send(f"Usage: `{PREFIX}get obsa Tetrahedron`. Run `{PREFIX}help get` for details.")
+            return
+        elif len(args) == 1:
+            await error(ctx, f"2 arguments expected, got 1.", dev = False)
+            return
+        elif len(args) > 2:
+            await error(ctx, f"2 arguments expected, got {len(args)}. Use \"quotation marks\" to enclose article names with more than one word.", dev = False)
+            return
+
+        field, title = args[0], args[1]
+
+        try:
+            page = Wiki.page(title, redirect = True)
+            fieldName, value = Wiki.getField(page, field)
+
+        # Any of the possible errors when reading a template.
+        except (MwClientError, ReadTimeout, TemplateError) as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        if fieldName == 'Coxeter diagram':
+            await cd(ctx, value)
+        else:
+            await ctx.send(f"**{fieldName}:** {value}")
+        
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
         return
-
-    fieldName, value = Wiki.getField(page, field)
-
-    if fieldName == 'Coxeter diagram':
-        await cd(ctx, value)
-    else:
-        await ctx.send(f"**{fieldName}:** {value}")
 
 # Posts all fields in a wiki page.
 @client.command()
@@ -394,29 +402,14 @@ async def info(ctx, *args: str) -> None:
         # Tries to get the item info.
         try:
             page = Wiki.page(article, redirect = True)
-            if not page.exists:
-                await error(ctx, f"The requested page {article} does not exist.", dev = False)
-                return
-
             fieldList = Wiki.getFields(page)
 
         # Title contains non-standard characters.
-        except InvalidPageTitle as e:
-            await error(ctx, str(e), dev = False)
-            return
-
-        # Redirect chain found.
-        except RedirectCycle as e:
-            await error(ctx, str(e), dev = False)
-            return
-
-        # Redirect chain found.
-        except TemplateError as e:
+        except (MwClientError, TemplateError) as e:
             await error(ctx, str(e), dev = False)
             return
 
         msg = ""
-
         for field, value in fieldList.items():
             msg += f"**{field}:** {value}" + '\n'
 
@@ -428,8 +421,6 @@ async def info(ctx, *args: str) -> None:
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
-        return
 
 # Dev command, shows the client latency.
 @client.command(aliases = [":ping_pong:", "🏓"])
@@ -468,7 +459,6 @@ async def prefix(ctx, *args: str) -> None:
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
         return
 
 # Logs an error and posts it.
@@ -481,6 +471,7 @@ async def error(ctx, text: str, dev: bool = False) -> None:
 
         # Pings all devs in case of a dev error.
         if not DEBUG:
+            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             for user in USER_IDS:
                 msg += f"<@{user}>\n"
     else:

@@ -60,7 +60,7 @@ def uppercase(code: Wikicode) -> str:
 
 def addDefaults(fieldList: Dict[str, str]) -> Dict[str, str]:
     # First removes empty attributes.
-    for name, value in fieldList.items():
+    for name, value in tuple(fieldList.items()):
         if value == '':
             del fieldList[name]
 

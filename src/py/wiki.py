@@ -1,5 +1,5 @@
 from src.py.exceptions import RedirectCycle, TemplateError
-from src.py import parser as parser
+from src.py import parser
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import AssertUserFailedError
@@ -29,19 +29,26 @@ class Wiki:
 
     # Gets all fields from a page's Infobox.
     def getFields(self, page: Page) -> Dict[str, str]:
+        if not page.exists:
+            raise TemplateError(f"The requested page {page.name} does not exist.")
+        
         wikicode = mwparserfromhell.parse(page.text())
 
         for template in wikicode.filter_templates():
             if template.name.matches("Infobox polytope"):
-                return parser.parse( # type: ignore
-                    template.params
-                )
+                return parser.parse(template.params)
 
         raise TemplateError("Infobox polytope not found.")
 
     # Gets a single field from a page's Infobox.
     def getField(self, page: Page, wikiField: str) -> Tuple[str, str]:
+        if not page.exists:
+            raise TemplateError(f"The requested page {page.name} does not exist.")
+        
         fieldName = parser.getFieldName(wikiField)
+
+        if fieldName is None:
+            raise TemplateError(f"Field {wikiField} not found.")
         return fieldName, self.getFields(page)[fieldName]
 
     # Returns a Page object with a given title.
@@ -100,7 +107,7 @@ class Wiki:
     # Redirects a page to another.
     # Does not perform any checks to see whether the pages exist, etc.
     MAX_TRIES = 3
-    def redirect(self, originPage, targetPage, tries = 0) -> None:
+    def redirect(self, originPage: Page, targetPage: Page, tries: int = 0) -> None:
         try:
             originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
         except AssertUserFailedError:
