@@ -154,7 +154,7 @@ class Draw:
         )
         self.updateBoundingBox(coords)
 
-        # Adds the arrayIndex property to the node, storing its index in the array.
+        # Updates the arrayIndex property to the node, storing its index in the new array.
         node.arrayIndex = len(self.nodes)
         self.nodes.append(newNode)
 
@@ -162,7 +162,7 @@ class Draw:
         i = 0
         for neighbor in node.neighbors:
             # Guarantees no duplicates.
-            if hasattr(neighbor, 'arrayIndex'):
+            if neighbor.arrayIndex is not None:
                 self.edges.append(DrawEdge(
                     index0 = neighbor.arrayIndex,
                     index1 = node.arrayIndex,

@@ -7,6 +7,7 @@ import logging
 import datetime
 import traceback
 import os
+import sympy
 
 from requests.exceptions import ReadTimeout
 
@@ -178,7 +179,9 @@ async def cd(ctx, *args: str) -> None:
             await ctx.send("https://cdc.gov")
         else:
             try:
-                temp = Draw(CD(cd).toGraph()).toImage()
+                graph = CD(cd).toGraph()
+                sympy.init_printing(useUnicode = True)
+                temp = Draw(graph).toImage()
             except CDError as e:
                 await error(ctx, str(e), dev = False)
                 return
@@ -193,6 +196,10 @@ async def cd(ctx, *args: str) -> None:
 
             os.remove(fileName)
             a_logger.info(f"INFO: Removed {fileName} file.")
+
+            # Posts circumradius
+            circ = graph.circumradius()
+            await ctx.send(f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
 
     # Unexpected error.
     except Exception as e:

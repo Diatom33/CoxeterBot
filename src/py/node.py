@@ -1,6 +1,10 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Optional, Tuple
+
+from sympy.core.numbers import Infinity
+from sympy.matrices.common import NonInvertibleMatrixError
 from src.py.exceptions import CDError
+import sympy
 
 # Nodes in a CD.
 class Node:
@@ -18,6 +22,9 @@ class Node:
         self.neighbors: List[Node] = []
         self.edgeLabels: List[str] = []
         self.visited: bool = False
+
+        # This is used internally both by the graph and draw classes, so beware!
+        self.arrayIndex: Optional[int] = None
 
     # Gets the degree of a node.
     def degree(self) -> int:
@@ -39,6 +46,12 @@ class Node:
             self.edgeLabels.append(label)
             node.neighbors.append(self)
             node.edgeLabels.append(label)
+
+    @staticmethod
+    def labelToNumber(label: str):
+        if label == '∞':
+            return sympy.oo
+        return sympy.Rational(label)
 
     # Gets the connected component of a node.
     def component(self) -> List[Node]:
@@ -63,6 +76,7 @@ class Graph:
     def __init__(self, array: List[Node]) -> None:
         self.array = array
         self.idx = 0
+        self.arrayIndex: int
 
     # Class iterator.
     def __iter__(self) -> Graph:
@@ -93,3 +107,51 @@ class Graph:
                 node.visited = False
 
         return components
+
+    # Gets the Schläfli matrix of a graph.
+    def schlafli(self) -> sympy.Matrix:
+        n = len(self.array)
+        matrix: List[List[float]] = []
+
+        for i in range(n):
+            self.array[i].arrayIndex = i
+
+        for i in range(n):
+            matrix.append([0] * n)
+            node0 = self.array[i]
+            neighbors = node0.neighbors
+            edgeLabels = node0.edgeLabels
+            matrix[-1][i] = 2
+
+            for j in range(len(neighbors)):
+                neighbor = neighbors[j]
+                label = Node.labelToNumber(edgeLabels[j])
+
+                assert isinstance(neighbor.arrayIndex, int)
+                matrix[-1][neighbor.arrayIndex] = -2 * sympy.cos(sympy.pi / label)
+                
+
+        for node in self.array:
+            node.arrayIndex = None
+
+        return sympy.Matrix(matrix)
+
+    # Gets the circumradius of a polytope's CD.
+    def circumradius(self) -> Tuple[str, str]:
+        try:
+            stott = self.schlafli() ** -1
+        except NonInvertibleMatrixError:
+            return '$\infty$', '$\infty$'
+
+        rings = []
+
+        for i in range(len(self.array)):
+            rings.append(int(self.array[i].value == 'x'))
+        ringVector = sympy.Matrix(rings)
+
+        E = sympy.sqrt(((stott * ringVector).T * ringVector)[0, 0] / 2)
+        return Graph.format(E), Graph.format(E.evalf())
+
+    @staticmethod
+    def format(number: str) -> str:
+        return '$' + sympy.latex(number) + '$'
