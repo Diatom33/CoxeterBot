@@ -1,10 +1,9 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple, Union, Dict
+from typing import List, Optional, Tuple
 
-from sympy.core.numbers import Infinity
-from sympy.matrices.common import NonInvertibleMatrixError
 from src.py.exceptions import CDError
 from sympy import Rational, Matrix, cos, pi, oo, sqrt, latex
+from sympy.matrices.common import NonInvertibleMatrixError
 
 # Nodes in a CD.
 class Node:
@@ -192,3 +191,16 @@ class Graph:
             )
         else:
             raise Exception("Invalid format mode.")
+
+    #Gets the rank and curvature of a polytope's CD.
+    def spaceof(self) -> str:
+        schlafli = self.schlafli()
+        schlaflian = schlafli.det()
+        dimen = schlafli.shape()[0]
+        if schlaflian >= 0:
+            curv = "spherical"
+        elif schlaflian == 0:
+            curv = "euclidean"
+        else:
+            curv = "hyperbolic"
+        return f" is a {str(dimen)}D {curv} polytope."
