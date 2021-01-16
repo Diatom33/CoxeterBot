@@ -160,7 +160,7 @@ class CD:
             elif readingNode:
                 index = self.index
                 newNodeLabel = self.readNode()
-                if newNodeLabel is None:
+                if newNodeLabel == '':
                     self.error("Invalid node symbol.")
 
                 # Removes parentheses.

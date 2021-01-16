@@ -177,6 +177,7 @@ class Graph:
         return Graph.format(s, mode), Graph.format(s.evalf(), 'plain')
 
     @staticmethod
+    # Formats a sympy result into something that can be posted on Discord.
     def format(number, mode: str) -> str:
         if mode == 'latex':
             return '$' + latex(number) + '$'
@@ -192,16 +193,17 @@ class Graph:
         else:
             raise Exception("Invalid format mode.")
 
-    #Gets the rank and curvature of a polytope's CD.
-    def spaceof(self) -> str:
+    # Gets the rank and curvature of a polytope's CD.
+    def spaceOf(self) -> str:
         schlafli = self.schlafli()
         schlaflian = schlafli.det()
         dimen = schlafli.shape[0]
 
-        if schlaflian >= 0:
+        if schlaflian > 0:
             curv = "spherical"
         elif schlaflian == 0:
             curv = "euclidean"
         else:
             curv = "hyperbolic"
+
         return f" is a {str(dimen)}D {curv} polytope."

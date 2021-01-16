@@ -106,6 +106,7 @@ fieldTranslator: Dict[str, str] = {
     'radius': 'Circumradius',
     'circum': 'Circumradius',
     'rad': 'Circumradius',
+    'cr': 'Circumradius',
 
     'pieces': 'Number of pieces',
     'loc': 'Level of complexity',

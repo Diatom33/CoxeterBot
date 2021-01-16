@@ -229,7 +229,7 @@ async def space(ctx, *args: str) -> None:
         else:
             try:
                 graph = CD(cd).toGraph()
-                response = graph.spaceof()
+                response = graph.spaceOf()
                 await ctx.send(str(cd) + response)
             except CDError as e:
                 await error(ctx, str(e), dev = False)
@@ -508,10 +508,10 @@ async def error(ctx, text: str, dev: bool = False) -> None:
     if dev:
         logMsg = f"UNEXPECTED ERROR: {text}"
         msg = f"```UNEXPECTED ERROR: {text}```\n"
+        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
 
         # Pings all devs in case of a dev error.
         if not DEBUG:
-            a_logger.info(f"ERROR:\n{traceback.format_exc()}")
             for user in USER_IDS:
                 msg += f"<@{user}>\n"
     else:
