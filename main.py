@@ -205,6 +205,27 @@ async def cd(ctx, *args: str) -> None:
     except Exception as e:
         await error(ctx, str(e), dev = True)
 
+# Shows a CD's emnompassing space.
+@client.command()
+async def space(ctx, *args: str) -> None:
+    try:
+        cd = ' '.join(args)
+        a_logger.info(f"COMMAND: space {cd}")
+
+        if cd == '':
+            await ctx.send(f"Usage: `{PREFIX}space x4o3o`. Run `{PREFIX}help space` for details.")
+        else:
+            try:
+                graph = CD(cd).toGraph()
+                response = graph.spaceof()
+                await ctx.send(str(cd) + response)
+            except CDError as e:
+                await error(ctx, str(e), dev = False)
+                return
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
+
 # Posts the link to a wiki article.
 @client.command()
 async def wiki(ctx, *args: str) -> None:

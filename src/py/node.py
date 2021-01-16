@@ -155,3 +155,16 @@ class Graph:
     @staticmethod
     def format(number: str) -> str:
         return '$' + sympy.latex(number) + '$'
+
+    #Gets the rank and curvature of a polytope's CD.
+    def spaceof(self) -> str:
+        schlafli = self.schlafli()
+        schlaflian = schlafli.det()
+        dimen = schlafli.shape()[0]
+        if schlaflian >= 0:
+            curv = "spherical"
+        elif schlaflian == 0:
+            curv = "euclidean"
+        else:
+            curv = "hyperbolic"
+        return f" is a {str(dimen)}D {curv} polytope."
