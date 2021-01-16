@@ -102,6 +102,11 @@ fieldTranslator: Dict[str, str] = {
     'regiment': 'Regiment',
     'company': 'Company',
 
+    'circumradius': 'Circumradius',
+    'radius': 'Circumradius',
+    'circum': 'Circumradius',
+    'rad': 'Circumradius',
+
     'pieces': 'Number of pieces',
     'loc': 'Level of complexity',
     'convex': 'Convex',

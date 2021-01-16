@@ -3,5 +3,6 @@ apicache-py3
 logs
 .vscode
 TOKEN.txt
+PREFIX.txt
 WIKI_PW.txt
 mypy.ini

@@ -180,7 +180,6 @@ async def cd(ctx, *args: str) -> None:
         else:
             try:
                 graph = CD(cd).toGraph()
-                sympy.init_printing(useUnicode = True)
                 temp = Draw(graph).toImage()
             except CDError as e:
                 await error(ctx, str(e), dev = False)
@@ -197,10 +196,23 @@ async def cd(ctx, *args: str) -> None:
             os.remove(fileName)
             a_logger.info(f"INFO: Removed {fileName} file.")
 
-            # Posts circumradius
-            circ = graph.circumradius()
-            await ctx.send(f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
+    # Unexpected error.
+    except Exception as e:
+        await error(ctx, str(e), dev = True)
 
+@client.command(aliases = ["radius", "cr"])
+async def circumradius(ctx, *args: str) -> None:
+    try:
+        cd = ' '.join(args)
+
+        # Posts circumradius
+        try:
+            circ = CD(cd).toGraph().circumradius()
+        except CDError as e:
+            await error(ctx, str(e), dev = False)
+            return
+
+        await ctx.send(f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)

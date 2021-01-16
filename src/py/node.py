@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union, Dict
 
 from sympy.core.numbers import Infinity
 from sympy.matrices.common import NonInvertibleMatrixError
 from src.py.exceptions import CDError
-import sympy
+from sympy import Rational, Matrix, cos, pi, oo, sqrt, latex
 
 # Nodes in a CD.
 class Node:
@@ -50,8 +50,27 @@ class Node:
     @staticmethod
     def labelToNumber(label: str):
         if label == '∞':
-            return sympy.oo
-        return sympy.Rational(label)
+            return oo
+        return Rational(label)
+
+    @staticmethod
+    def nodeToNumber(label: str):
+        if label in Node.dictionary:
+            return Node.dictionary[label]
+        return 2 * cos(pi / Rational(label))
+    
+    dictionary = {
+        'o': 0,
+        'x': 1,
+        'q': sqrt(2),
+        'f': (1 + sqrt(5)) / 2,
+        'v': (sqrt(5) - 1) / 2,
+        'h': sqrt(3),
+        'k': sqrt(2 + sqrt(2)),
+        'u': 2,
+        'w': 1 + sqrt(2),
+        'F': (3 + sqrt(5)) / 2
+    }
 
     # Gets the connected component of a node.
     def component(self) -> List[Node]:
@@ -109,7 +128,7 @@ class Graph:
         return components
 
     # Gets the Schläfli matrix of a graph.
-    def schlafli(self) -> sympy.Matrix:
+    def schlafli(self) -> Matrix:
         n = len(self.array)
         matrix: List[List[float]] = []
 
@@ -118,9 +137,9 @@ class Graph:
 
         for i in range(n):
             matrix.append([0] * n)
-            node0 = self.array[i]
-            neighbors = node0.neighbors
-            edgeLabels = node0.edgeLabels
+            node = self.array[i]
+            neighbors = node.neighbors
+            edgeLabels = node.edgeLabels
             matrix[-1][i] = 2
 
             for j in range(len(neighbors)):
@@ -128,30 +147,48 @@ class Graph:
                 label = Node.labelToNumber(edgeLabels[j])
 
                 assert isinstance(neighbor.arrayIndex, int)
-                matrix[-1][neighbor.arrayIndex] = -2 * sympy.cos(sympy.pi / label)
-                
+                matrix[-1][neighbor.arrayIndex] = -2 * cos(pi / label)                
 
-        for node in self.array:
+        for node in self:
             node.arrayIndex = None
 
-        return sympy.Matrix(matrix)
+        return Matrix(matrix)
 
     # Gets the circumradius of a polytope's CD.
-    def circumradius(self) -> Tuple[str, str]:
+    def __circumradius(self):
         try:
             stott = self.schlafli() ** -1
         except NonInvertibleMatrixError:
-            return '$\infty$', '$\infty$'
+            return oo
 
         rings = []
 
         for i in range(len(self.array)):
-            rings.append(int(self.array[i].value == 'x'))
-        ringVector = sympy.Matrix(rings)
+            rings.append(Node.nodeToNumber(self.array[i].value))
+        ringVector = Matrix(rings)
 
-        E = sympy.sqrt(((stott * ringVector).T * ringVector)[0, 0] / 2)
-        return Graph.format(E), Graph.format(E.evalf())
+        return sqrt(((stott * ringVector).T * ringVector)[0, 0] / 2)
+
+    def circumradius(self, mode: str = 'plain') -> Tuple[str, str]:
+        res = 0
+        for component in self.components():
+            res += Graph(component).__circumradius() ** 2
+        
+        s = sqrt(res)
+        return Graph.format(s, mode), Graph.format(s.evalf(), 'plain')
 
     @staticmethod
-    def format(number: str) -> str:
-        return '$' + sympy.latex(number) + '$'
+    def format(number, mode: str) -> str:
+        if mode == 'latex':
+            return '$' + latex(number) + '$'
+        # Maybe print exponents in Unicode?
+        elif mode == 'plain':
+            return (str(number)
+                .replace('**', '^')
+                .replace('*', '×')
+                .replace('I', 'i')
+                .replace('-', '–')
+                .replace('oo', '∞')
+            )
+        else:
+            raise Exception("Invalid format mode.")
