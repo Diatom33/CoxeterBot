@@ -25,3 +25,5 @@ redirect = (
 search = "Searches for an article on the wiki."
 
 info = "Gets a shape's info from its infobox on the wiki."
+
+space = "Returns the dimension and curvature of a CD."
