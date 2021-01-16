@@ -7,7 +7,6 @@ import logging
 import datetime
 import traceback
 import os
-import sympy
 
 from requests.exceptions import ReadTimeout
 
@@ -109,7 +108,7 @@ async def help(ctx, *args: str) -> None:
             )
         ))
     # The ?help cd embed.
-    elif command == 'cd':
+    elif command == 'cd' or command == ':cd:' or command == '💿':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
             shortExplanation = explanation.cd,
@@ -507,13 +506,13 @@ async def prefix(ctx, *args: str) -> None:
 async def error(ctx, text: str, dev: bool = False) -> None:
     if dev:
         logMsg = f"UNEXPECTED ERROR: {text}"
-        msg = f"```UNEXPECTED ERROR: {text}```\n"
+        msg = f"```UNEXPECTED ERROR: {text}\n\nPlease report this issue on the GitHub repository.```\n"
         a_logger.info(f"ERROR:\n{traceback.format_exc()}")
 
         # Pings all devs in case of a dev error.
         if not DEBUG:
             for user in USER_IDS:
-                msg += f"<@{user}>\n"
+                msg += f"<@{user}> "
     else:
         logMsg = f"ERROR: {text}"
         msg = f"```ERROR: {text}```"

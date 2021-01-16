@@ -50,13 +50,23 @@ class Node:
     def labelToNumber(label: str):
         if label == '∞':
             return oo
-        return Rational(label)
+        elif label == 'Ø':
+            return None
+
+        try:
+            return Rational(label)
+        except TypeError as e:
+            raise CDError(f"Edge label {label} could not be recognized as a value.")
 
     @staticmethod
     def nodeToNumber(label: str):
         if label in Node.dictionary:
             return Node.dictionary[label]
-        return 2 * cos(pi / Rational(label))
+
+        try:
+            return 2 * cos(pi / Rational(label))
+        except TypeError as e:
+            raise CDError(f"Node label {label} could not be recognized as a value.")
 
     dictionary = {
         'o': 0,
@@ -131,9 +141,11 @@ class Graph:
         n = len(self.array)
         matrix: List[List[float]] = []
 
+        # Saves the index of each node on the array as a property of the node itself.
         for i in range(n):
             self.array[i].arrayIndex = i
 
+        # For every node in the graph:
         for i in range(n):
             matrix.append([0] * n)
             node = self.array[i]
@@ -141,11 +153,17 @@ class Graph:
             edgeLabels = node.edgeLabels
             matrix[-1][i] = 2
 
+            # For every other node in the graph:
             for j in range(len(neighbors)):
                 neighbor = neighbors[j]
                 label = Node.labelToNumber(edgeLabels[j])
 
+                if label is None:
+                    raise CDError("Ø not permitted in circumradius computation.")
+
                 assert isinstance(neighbor.arrayIndex, int)
+
+                # Fills in the matrix entries.
                 matrix[-1][neighbor.arrayIndex] = -2 * cos(pi / label)
 
         for node in self:
