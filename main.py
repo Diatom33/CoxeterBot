@@ -167,7 +167,7 @@ async def help(ctx, *args: str) -> None:
             )
         ))
     # The ?help space embed.
-elif command == 'space':
+    elif command == 'space':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
             shortExplanation = explanation.space,
