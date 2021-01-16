@@ -96,6 +96,12 @@ async def help(ctx, *args: str) -> None:
             inline = False
         )
 
+        helpEmbed.add_field(
+            name = f"`{PREFIX}space [linearized diagram]`",
+            value = explanation.space,
+            inline = False
+        )
+
         await ctx.send(embed = helpEmbed)
     # The ?help help embed.
     elif command == 'help':
@@ -150,7 +156,7 @@ async def help(ctx, *args: str) -> None:
                 f"`{PREFIX}search great stellated`: Gets the wiki results for \"great stellated\"."
             )
         ))
-    # The ?info search embed.
+    # The ?help info embed.
     elif command == 'info':
         await ctx.send(embed = commandHelpEmbed(
             command = command,
@@ -158,6 +164,17 @@ async def help(ctx, *args: str) -> None:
             examples = (
                 f"`{PREFIX}info square`: Gets the info for a square.\n"
                 f"`{PREFIX}info great dodecahedron`: Gets the info for a great dodecahedron."
+            )
+        ))
+    # The ?help space embed.
+elif command == 'space':
+        await ctx.send(embed = commandHelpEmbed(
+            command = command,
+            shortExplanation = explanation.space,
+            examples = (
+                f"`{PREFIX}space x3o3o`: Returns the dimension and curvature of a tetrahedron.\n"
+                f"`{PREFIX}space x∞o6o`: Returns the dimension and curvature of an order 6 apierogonal tiling.\n"
+                f"`{PREFIX}space x3o3o4x`:Returns the dimension and curvature of \"sidpith\"."
             )
         ))
     else:
