@@ -31,7 +31,7 @@ class Wiki:
     def getFields(self, page: Page) -> Dict[str, str]:
         if not page.exists:
             raise TemplateError(f"The requested page {page.name} does not exist.")
-        
+
         wikicode = mwparserfromhell.parse(page.text())
 
         for template in wikicode.filter_templates():
@@ -44,7 +44,7 @@ class Wiki:
     def getField(self, page: Page, wikiField: str) -> Tuple[str, str]:
         if not page.exists:
             raise TemplateError(f"The requested page {page.name} does not exist.")
-        
+
         fieldName = parser.getFieldName(wikiField)
 
         if fieldName is None:

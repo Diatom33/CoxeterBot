@@ -421,7 +421,7 @@ async def get(ctx, *args: str) -> None:
             await cd(ctx, value)
         else:
             await ctx.send(f"**{fieldName}:** {value}")
-        
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)

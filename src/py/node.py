@@ -57,7 +57,7 @@ class Node:
         if label in Node.dictionary:
             return Node.dictionary[label]
         return 2 * cos(pi / Rational(label))
-    
+
     dictionary = {
         'o': 0,
         'x': 1,
@@ -146,7 +146,7 @@ class Graph:
                 label = Node.labelToNumber(edgeLabels[j])
 
                 assert isinstance(neighbor.arrayIndex, int)
-                matrix[-1][neighbor.arrayIndex] = -2 * cos(pi / label)                
+                matrix[-1][neighbor.arrayIndex] = -2 * cos(pi / label)
 
         for node in self:
             node.arrayIndex = None
@@ -172,7 +172,7 @@ class Graph:
         res = 0
         for component in self.components():
             res += Graph(component).__circumradius() ** 2
-        
+
         s = sqrt(res)
         return Graph.format(s, mode), Graph.format(s.evalf(), 'plain')
 
@@ -196,7 +196,8 @@ class Graph:
     def spaceof(self) -> str:
         schlafli = self.schlafli()
         schlaflian = schlafli.det()
-        dimen = schlafli.shape()[0]
+        dimen = schlafli.shape[0]
+
         if schlaflian >= 0:
             curv = "spherical"
         elif schlaflian == 0:
