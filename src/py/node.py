@@ -214,14 +214,17 @@ class Graph:
     # Gets the rank and curvature of a polytope's CD.
     def spaceOf(self) -> str:
         schlafli = self.schlafli()
-        schlaflian = schlafli.det()
+        sgn = schlafli.det()
         dimen = schlafli.shape[0]
 
-        if schlaflian > 0:
-            curv = "spherical"
-        elif schlaflian == 0:
-            curv = "euclidean"
-        else:
-            curv = "hyperbolic"
-
+        try:
+            if sgn > 0:
+                curv = "spherical"
+            elif sgn < 0:
+                curv = "hyperbolic"
+            else:
+                curv = "euclidean"
+        except TypeError as e:
+            raise CDError("Couldn't determine sign of Schläflian. The space of the polytope is probably Euclidean.")
+        
         return f" is a {str(dimen)}D {curv} polytope."
