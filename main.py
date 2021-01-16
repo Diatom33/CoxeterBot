@@ -173,8 +173,8 @@ async def help(ctx, *args: str) -> None:
             shortExplanation = explanation.space,
             examples = (
                 f"`{PREFIX}space x3o3o`: Returns the dimension and curvature of a tetrahedron.\n"
-                f"`{PREFIX}space x∞o6o`: Returns the dimension and curvature of an order 6 apierogonal tiling.\n"
-                f"`{PREFIX}space x3o3o4x`:Returns the dimension and curvature of \"sidpith\"."
+                f"`{PREFIX}space x3o3o4x`: Returns the dimension and curvature of \"sidpith\".\n"
+                f"`{PREFIX}space x∞o6o`: Returns the dimension and curvature of an order 6 apierogonal tiling."
             )
         ))
     else:
