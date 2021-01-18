@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import List, Optional, Tuple
 
 from src.py.exceptions import CDError
-from sympy import Rational, Matrix, cos, pi, oo, sqrt, latex
+from sympy import Rational, Expr, Matrix, cos, pi, oo, zoo, sqrt, latex
 from sympy.matrices.common import NonInvertibleMatrixError
 
 # Nodes in a CD.
@@ -22,8 +22,22 @@ class Node:
         self.edgeLabels: List[str] = []
         self.visited: bool = False
 
-        # This is used internally both by the graph and draw classes, so beware!
+        # The index of a node in the graph that contains it.
         self.arrayIndex: Optional[int] = None
+
+        # The index of a node in the drawing screen.
+        self.drawIndex: Optional[int] = None
+
+        # Auxiliary for graph clone.
+        self.cloneNode: Node
+
+    # Clones a node, along with its neighbors.
+    def clone(self) -> Node:
+        newNode = Node(self.value, self.stringIndex)
+        newNode.neighbors = list(self.neighbors)
+        newNode.edgeLabels = list(self.edgeLabels)
+
+        return newNode
 
     # Gets the degree of a node.
     def degree(self) -> int:
@@ -60,15 +74,15 @@ class Node:
 
     @staticmethod
     def nodeToNumber(label: str):
-        if label in Node.dictionary:
-            return Node.dictionary[label]
+        if label in Node.__dictionary:
+            return Node.__dictionary[label]
 
         try:
             return 2 * cos(pi / Rational(label))
         except TypeError as e:
             raise CDError(f"Node label {label} could not be recognized as a value.")
 
-    dictionary = {
+    __dictionary = {
         'o': 0,
         'x': 1,
         'q': sqrt(2),
@@ -103,8 +117,29 @@ class Graph:
     # Class constructor.
     def __init__(self, array: List[Node]) -> None:
         self.array = array
-        self.idx = 0
-        self.arrayIndex: int
+        self.idx: int
+        
+        # If the nodes already have array indices, that is, 
+        # if they were already part of a previous graph,
+        # we clone them so as to not run into weird issues.
+        if len(self) > 0:
+            if self[0].arrayIndex is not None:
+                # Associates a clone for every node.
+                for i in range(len(array)):
+                    self[i].cloneNode = self[i].clone()
+
+                # Replaces the original nodes with their clones.
+                for i in range(len(self)):
+                    self[i] = self[i].cloneNode
+                    self[i].arrayIndex = i
+
+                # Links the cloned nodes.
+                for node in self:
+                    for i in range(len(node.neighbors)):
+                        node.neighbors[i] = node.neighbors[i].cloneNode
+            else:
+                for i in range(len(array)):
+                    array[i].arrayIndex = i
 
     # Class iterator.
     def __iter__(self) -> Graph:
@@ -113,45 +148,53 @@ class Graph:
 
     # Next iterator method.
     def __next__(self) -> Node:
-        if self.idx < len(self.array):
-            x = self.array[self.idx]
+        if self.idx < len(self):
+            x = self[self.idx]
             self.idx += 1
             return x
 
         raise StopIteration
 
+    def __getitem__(self, key: int) -> Node:
+        return self.array[key]
+
+    def __setitem__(self, key: int, value: Node) -> None:
+        self.array[key] = value
+
+    def __delitem__(self, key: int) -> None:
+        del self.array[key]
+
+    def __len__(self):
+        return len(self.array)
+
     # Gets the connected components of a graph.
-    def components(self) -> List[List[Node]]:
-        components: List[List[Node]] = []
+    def components(self) -> List[Graph]:
+        components: List[Graph] = []
 
         # Puts the connected components in an array.
         for node in self:
             if not node.visited:
-                components.append(node.component())
+                components.append(Graph(node.component()))
 
         # Resets visited attribute.
-        for component in components:
-            for node in component:
-                node.visited = False
+        for node in self:
+            node.visited = False
 
         return components
 
     # Gets the Schläfli matrix of a graph.
     def schlafli(self) -> Matrix:
-        n = len(self.array)
-        matrix: List[List[float]] = []
-
-        # Saves the index of each node on the array as a property of the node itself.
-        for i in range(n):
-            self.array[i].arrayIndex = i
+        n = len(self)
+        matrix: List[List[Expr]] = []
 
         # For every node in the graph:
         for i in range(n):
             matrix.append([0] * n)
+
             node = self.array[i]
             neighbors = node.neighbors
             edgeLabels = node.edgeLabels
-            matrix[-1][i] = 2
+            matrix[i][i] = 2
 
             # For every other node in the graph:
             for j in range(len(neighbors)):
@@ -164,15 +207,14 @@ class Graph:
                 assert isinstance(neighbor.arrayIndex, int)
 
                 # Fills in the matrix entries.
-                matrix[-1][neighbor.arrayIndex] = -2 * cos(pi / label)
-
-        for node in self:
-            node.arrayIndex = None
+                matrix[i][neighbor.arrayIndex] = -2 * cos(pi / label)        
 
         return Matrix(matrix)
 
     # Gets the circumradius of a polytope's CD.
-    def __circumradius(self):
+    # Is meant for a single connected component
+    # (but it will work ok for non-connex graphs).
+    def __circumradius(self) -> Expr:
         try:
             stott = self.schlafli() ** -1
         except NonInvertibleMatrixError:
@@ -180,19 +222,25 @@ class Graph:
 
         rings = []
 
-        for i in range(len(self.array)):
+        for i in range(len(self)):
             rings.append(Node.nodeToNumber(self.array[i].value))
         ringVector = Matrix(rings)
 
         return sqrt(((stott * ringVector).T * ringVector)[0, 0] / 2)
-
-    def circumradius(self, mode: str = 'plain') -> Tuple[str, str]:
+    
+    # Gets the circumradius of a polytope's CD.
+    # Depends on __circumradius.
+    def circumradius(self) -> Expr:
         res = 0
         for component in self.components():
-            res += Graph(component).__circumradius() ** 2
+            res += component.__circumradius() ** 2
 
-        s = sqrt(res)
-        return Graph.format(s, mode), Graph.format(s.evalf(), 'plain')
+        return sqrt(res)
+
+    # Same as circumradius, except that it returns a tuple of messages to post.
+    def circumradiusFormat(self, mode: str = 'plain') -> Tuple[str, str]:
+        circ = self.circumradius()
+        return Graph.format(circ, mode), Graph.format(circ.evalf(), 'plain')
 
     @staticmethod
     # Formats a sympy result into something that can be posted on Discord.
@@ -214,17 +262,50 @@ class Graph:
     # Gets the rank and curvature of a polytope's CD.
     def spaceOf(self) -> str:
         schlafli = self.schlafli()
-        sgn = schlafli.det()
-        dimen = schlafli.shape[0]
+        n = len(self)
+
+        # If a mirror configuration can be built in Euclidean space,
+        # the Schläflian suffices to determine whether it is spherical or Euclidean.
+        valid: bool = True
+        mirrorNormals: List[List[Expr]] = []
+
+        # For each of the mirrors:
+        for i in range(n):
+            mirrorNormals.append([0] * n)
+            norm = 0
+
+            # For each of the other mirrors we've already placed:
+            for j in range(i):
+                # Calculates their dot product.
+                dot = 0
+                for k in range(j):
+                    dot += mirrorNormals[i][k] * mirrorNormals[j][k]
+                
+                # Defines the next coordinate of the i-th mirror so that 
+                # the dot product between the i-th and j-th mirror checks out.
+                mirrorNormals[i][j] = (schlafli[i,j] / 2 - dot) / mirrorNormals[j][j]
+                norm += mirrorNormals[i][j] ** 2
+
+            # If the mirror normal can't be built, then the mirror config is hyperbolic.
+            if norm == zoo or norm > 1:
+                valid = False
+                break
+
+            mirrorNormals[i][i] = sqrt(1 - norm)
+
+        if not valid:
+            return f" is a {n}D hyperbolic polytope."
+
+        schlaflian = schlafli.det()
 
         try:
-            if sgn > 0:
+            if schlaflian > 0:
                 curv = "spherical"
-            elif sgn < 0:
-                curv = "hyperbolic"
+            elif schlaflian == 0:
+                curv = "Euclidean"
             else:
-                curv = "euclidean"
+                raise Exception("The Schläflian of a valid mirror arrangement must be non-negative.")
         except TypeError as e:
-            raise CDError("Couldn't determine sign of Schläflian. The space of the polytope is probably Euclidean.")
+            raise CDError(f"Couldn't determine sign of Schläflian (≈ {schlaflian.evalf()}). The space of the polytope is probably Euclidean.")
         
-        return f" is a {str(dimen)}D {curv} polytope."
+        return f" is a {n}D {curv} polytope."

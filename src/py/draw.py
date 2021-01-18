@@ -101,7 +101,7 @@ class Draw:
     # Adds a new component to the diagram.
     # Currently, just puts everything in a straight line.
     # TODO: make this draw the trees prettily.
-    def add(self, component: List[Node]) -> None:
+    def add(self, component: Graph) -> None:
         straight, firstNode = self.isStraight(component)
 
         if straight:
@@ -154,18 +154,18 @@ class Draw:
         )
         self.updateBoundingBox(coords)
 
-        # Updates the arrayIndex property to the node, storing its index in the new array.
-        node.arrayIndex = len(self.nodes)
+        # Updates the graphIndex property to the node, storing its index in the new array.
+        node.drawIndex = len(self.nodes)
         self.nodes.append(newNode)
 
         # Adds edges.
         i = 0
         for neighbor in node.neighbors:
             # Guarantees no duplicates.
-            if neighbor.arrayIndex is not None:
+            if neighbor.drawIndex is not None:
                 self.edges.append(DrawEdge(
-                    index0 = neighbor.arrayIndex,
-                    index1 = node.arrayIndex,
+                    index0 = neighbor.drawIndex,
+                    index1 = node.drawIndex,
                     label = node.edgeLabels[i],
                     drawingMode = drawingMode
                 ))
@@ -175,7 +175,7 @@ class Draw:
     # A connected graph is a line graph iff every vertex has degree ≤ 2,
     # and at least one vertex has degree 1.
     # Returns whether the graph is a line graph, and if so, its first node (in string order).
-    def isStraight(self, component: List[Node]) -> Tuple[bool, Node]:
+    def isStraight(self, component: Graph) -> Tuple[bool, Node]:
         if len(component) < 3:
             return (True, component[0])
 

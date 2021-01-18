@@ -20,7 +20,7 @@ from mwclient.errors import MwClientError
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read().rstrip()
-DEBUG = False
+DEBUG = True
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
@@ -223,7 +223,7 @@ async def circumradius(ctx, *args: str) -> None:
 
         # Posts circumradius
         try:
-            circ = CD(cd).toGraph().circumradius()
+            circ = CD(cd).toGraph().circumradiusFormat()
         except CDError as e:
             await error(ctx, str(e), dev = False)
             return
