@@ -6,7 +6,7 @@ from mwclient.errors import AssertUserFailedError
 import mwparserfromhell
 from mwparserfromhell.wikicode import Wikicode, Tag, Template, Wikilink
 
-from typing import Callable, Dict, List, Tuple, Optional
+from typing import Callable, Dict, List, Tuple, Optional, Union
 
 # A wrapper for mwclient.
 username = 'OfficialURL@CoxeterBot'
@@ -24,18 +24,20 @@ def login() -> None:
     site.login(username, open("src/txt/WIKI_PW.txt", "r").read())
 
 # Gets all fields from a page's Infobox.
-def getFields(page: Page) -> Dict[str, str]:
+def getUnparsedFields(page: Page) -> List[Wikicode]:
     if not page.exists:
         raise TemplateError(f"The requested page {page.name} does not exist.")
 
     wikicode = mwparserfromhell.parse(page.text())
-    assert isinstance(wikicode, Wikicode)
 
     for template in wikicode.filter_templates():
         if template.name.matches("Infobox polytope"):
-            return parse(template.params)
+            return template.params
 
     raise TemplateError("Infobox polytope not found.")
+
+def getFields(page: Page) -> Dict[str, str]:
+    return parse(getUnparsedFields(page))
 
 # Gets a single field from a page's Infobox.
 def getField(page: Page, wikiField: str) -> Tuple[str, str]:
@@ -44,9 +46,12 @@ def getField(page: Page, wikiField: str) -> Tuple[str, str]:
 
     fieldName = getFieldName(wikiField)
 
-    if fieldName is None:
-        raise TemplateError(f"Field {wikiField} not found.")
-    return fieldName, getFields(page)[fieldName]
+    if fieldName is not None:
+        for field in getUnparsedFields(page):
+            if getFieldName(field.name) == fieldName:
+                return parseItem(field) # type: ignore
+
+    raise TemplateError(f"Field {wikiField} not found.")
 
 # Returns a Page object with a given title.
 # If redirect, goes through the whole redirect chain.
@@ -115,28 +120,33 @@ def redirect(originPage: Page, targetPage: Page, tries: int = 0) -> None:
         else:
             raise ConnectionRefusedError("Could not connect to the Polytope Wiki.")
 
+def parseItem(param: Wikicode) -> Union[Tuple[str, str], Tuple[None, None]]:
+    name: Wikicode = param.name
+    code: Wikicode = param.value
+
+    # Compares the param name to the list of parsers.
+    newName = getFieldName(str(name))
+    if newName is None:
+        return None, None
+
+    if newName in parsers:
+        newCode = (parsers[newName])(code)
+    else:
+        newCode = code
+
+    return newName, stringFormat(newCode)
+
 def parse(params: List[Wikicode]) -> Dict[str, str]:
     # A dictionary of parsed parameter names and values.
     parseFieldList: Dict[str, str] = {}
 
     # For each of the template's parameters:
-    for param in params:
-        name: Wikicode = param.name
-        code: Wikicode = param.value
-
-        assert isinstance(name, Wikicode)
-        assert isinstance(code, Wikicode)
-
-        # Compares the param name to the list of parsers.
-        newName = getFieldName(str(name))
-        if newName is not None:
-            if newName in parsers:
-                newCode = (parsers[newName])(code)
-            else:
-                newCode = code
-
-            # Adds the new name and new value to the dictionary.
-            parseFieldList[newName] = stringFormat(newCode)
+    for param in params:       
+        newName, newCode = parseItem(param)
+        
+        # Adds the new name and new value to the dictionary.
+        if newName is not None and newCode is not None:
+            parseFieldList[newName] = newCode
 
     # Adds default values for missing fields.
     return addDefaults(parseFieldList)
@@ -169,14 +179,10 @@ def stringFormat(code: Wikicode) -> str:
 
         elif isinstance(innerCode, Wikilink):
             linkPage = page(str(innerCode.title), redirect = True)
-            link = ''
+            link = innerCode.text or innerCode.title
 
             if linkPage.exists:
-                if innerCode.text is not None:
-                    link += f'({innerCode.text})'
-                link += f'[{pageToURL(linkPage)}]'
-            else:
-                link = innerCode.text or innerCode.title
+                link = f'({link})[{pageToURL(linkPage)}]'
 
             code.replace(innerCode, link)
 
