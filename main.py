@@ -7,6 +7,7 @@ import logging
 import datetime
 import traceback
 import os
+from func_timeout import func_timeout, FunctionTimedOut
 
 from requests.exceptions import ReadTimeout
 
@@ -223,12 +224,15 @@ async def circumradius(ctx, *args: str) -> None:
 
         # Posts circumradius
         try:
-            circ = CD(cd).toGraph().circumradiusFormat()
+            circ = func_timeout(10, lambda x: CD(x).toGraph().circumradiusFormat(), args = (cd,))
         except CDError as e:
             await error(ctx, str(e), dev = False)
             return
+        except FunctionTimedOut as e:
+            await error(ctx, "Calculation timed out after 10s.", dev = False)
+            return
 
-        await ctx.send(f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
+        await longSend(ctx, f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -244,11 +248,13 @@ async def space(ctx, *args: str) -> None:
             await ctx.send(f"Usage: `{PREFIX}space x4o3o`. Run `{PREFIX}help space` for details.")
         else:
             try:
-                graph = CD(cd).toGraph()
-                response = graph.spaceOf()
-                await ctx.send(str(cd) + response)
+                space = func_timeout(10, lambda x: CD(x).toGraph().spaceOf(), args = (cd,))
+                await ctx.send(str(cd) + space)
             except CDError as e:
                 await error(ctx, str(e), dev = False)
+                return
+            except FunctionTimedOut as e:
+                await error(ctx, "Calculation timed out after 10s.", dev = False)
                 return
     # Unexpected error.
     except Exception as e:
@@ -536,6 +542,21 @@ async def error(ctx, text: str, dev: bool = False) -> None:
 
     a_logger.info(logMsg)
     await ctx.send(msg)
+
+# Sends a message, posting it as a text file in case it is too long.
+async def longSend(ctx, text: str):
+    if len(text) <= 2000:
+        await ctx.send(text)
+    else:
+        global fileCount
+        fc = fileCount
+        fileCount += 1
+
+        with open(f"result{fc}.txt", "w") as fileW:
+            fileW.write(text)
+
+        with open(f"result{fc}.txt", "rb") as fileR:
+            await ctx.send("Result too long, posted as a text file:", file = discord.File(fileR, "result.txt"))
 
 # Creates a help embed for a given command.
 def commandHelpEmbed(command: str, shortExplanation: str, examples: str) -> Embed:
