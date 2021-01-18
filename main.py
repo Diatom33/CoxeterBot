@@ -557,6 +557,7 @@ async def longSend(ctx, text: str):
 
         with open(f"result{fc}.txt", "rb") as fileR:
             await ctx.send("Result too long, posted as a text file:", file = discord.File(fileR, "result.txt"))
+            os.remove("result.txt")
 
 # Creates a help embed for a given command.
 def commandHelpEmbed(command: str, shortExplanation: str, examples: str) -> Embed:
