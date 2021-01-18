@@ -160,7 +160,7 @@ def stringFormat(code: Wikicode) -> str:
                 code.replace(innerCode, f"*{innerCode.contents}*")
             elif innerCode.wiki_markup == "'''":
                 code.replace(innerCode, f"**{innerCode.contents}**")
-            elif innerCode.wiki_markup == '<nowiki>':                
+            elif innerCode.wiki_markup == '<nowiki>':
                 code.replace(innerCode, innerCode.contents)
 
         elif isinstance(innerCode, Template):
@@ -168,16 +168,16 @@ def stringFormat(code: Wikicode) -> str:
                 code.replace(innerCode, '|')
 
         elif isinstance(innerCode, Wikilink):
-            linkPage = page(str(innerCode.title), redirect = True)                          
+            linkPage = page(str(innerCode.title), redirect = True)
             link = ''
 
-            if linkPage.exists:  
+            if linkPage.exists:
                 if innerCode.text is not None:
-                    link += f'({innerCode.text})'                
+                    link += f'({innerCode.text})'
                 link += f'[{pageToURL(linkPage)}]'
             else:
                 link = innerCode.text or innerCode.title
-            
+
             code.replace(innerCode, link)
 
     return str(code).strip()

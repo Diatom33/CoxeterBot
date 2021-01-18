@@ -1,7 +1,5 @@
 from __future__ import annotations
-from typing import List, Optional, Match
-
-import re
+from typing import List, Optional, Tuple
 
 from src.py.exceptions import CDError
 from sympy import Rational, Expr, Matrix, cos, pi, oo, zoo, sqrt, latex
@@ -120,8 +118,8 @@ class Graph:
     def __init__(self, array: List[Node]) -> None:
         self.array = array
         self.idx: int
-        
-        # If the nodes already have array indices, that is, 
+
+        # If the nodes already have array indices, that is,
         # if they were already part of a previous graph,
         # we clone them so as to not run into weird issues.
         if len(self) > 0:
@@ -169,9 +167,6 @@ class Graph:
     def __len__(self):
         return len(self.array)
 
-    def dimensions(self) -> int:
-        return len(self)
-
     # Gets the connected components of a graph.
     def components(self) -> List[Graph]:
         components: List[Graph] = []
@@ -207,35 +202,45 @@ class Graph:
                 label = Node.labelToNumber(edgeLabels[j])
 
                 if label is None:
-                    return None
+                    raise CDError("Ø not permitted in circumradius computation.")
 
                 assert isinstance(neighbor.arrayIndex, int)
 
                 # Fills in the matrix entries.
-                matrix[i][neighbor.arrayIndex] = -2 * cos(pi / label)        
+                matrix[i][neighbor.arrayIndex] = -2 * cos(pi / label)
 
         return Matrix(matrix)
 
     # Gets the circumradius of a polytope's CD.
     # Is meant for a single connected component
     # (but it will work ok for non-connex graphs).
-    def __circumradius(self) -> Expr:
+    def __circumradius(self) -> Expr:               
+        rings = [] 
+        allZero = True
+
+        # Creates the vector of distances of the point to the mirrors.
+        for i in range(len(self)):
+            val = Node.nodeToNumber(self.array[i].value)
+            rings.append(val)
+
+            if val != 0:
+                allZero = False
+
+        # If all distances are zero, the circumradius is zero.
+        if allZero:
+            return 0
+
+        # Does the actual calculation.
+        # Formula found by Wendy Krieger.
+        ringVector = Matrix(rings)
+
         try:
-            schlafli = self.schlafli()
-            if schlafli is None:                
-                raise CDError("Ø not permitted in circumradius computation.")
-            stott = schlafli ** -1
+            stott = self.schlafli() ** -1
         except NonInvertibleMatrixError:
             return oo
 
-        rings = []
-
-        for i in range(len(self)):
-            rings.append(Node.nodeToNumber(self.array[i].value))
-        ringVector = Matrix(rings)
-
         return sqrt(((stott * ringVector).T * ringVector)[0, 0] / 2)
-    
+
     # Gets the circumradius of a polytope's CD.
     # Depends on __circumradius.
     def circumradius(self) -> Expr:
@@ -245,39 +250,20 @@ class Graph:
 
         return sqrt(res)
 
-    __expDictionary = {
-        '0': '⁰', 
-        '1': '¹', 
-        '2': '²', 
-        '3': '³', 
-        '4': '⁴', 
-        '5': '⁵', 
-        '6': '⁶', 
-        '7': '⁷', 
-        '8': '⁸', 
-        '9': '⁹'
-    }
-
-    @staticmethod
-    def parsePowers(match: Match) -> str:
-        matchStr = match.group()
-        print(matchStr)
-        newStr = ''
-        for i in range(len(matchStr) - 2):
-            newStr += Graph.__expDictionary[matchStr[i + 2]]
-        
-        print(newStr)
-        return newStr
+    # Same as circumradius, except that it returns a tuple of messages to post.
+    def circumradiusFormat(self, mode: str = 'plain') -> Tuple[str, str]:
+        circ = self.circumradius()
+        return Graph.format(circ, mode), Graph.format(circ.evalf(), 'plain')
 
     @staticmethod
     # Formats a sympy result into something that can be posted on Discord.
     def format(number, mode: str) -> str:
         if mode == 'latex':
             return '$' + latex(number) + '$'
-
         # Maybe print exponents in Unicode?
         elif mode == 'plain':
-            return (re.sub('\*\*[0-9]*', Graph.parsePowers, str(number))
+            return (str(number)
+                .replace('**', '^')
                 .replace('*', '×')
                 .replace('I', 'i')
                 .replace('-', '–')
@@ -289,9 +275,6 @@ class Graph:
     # Gets the rank and curvature of a polytope's CD.
     def spaceOf(self) -> str:
         schlafli = self.schlafli()
-        if schlafli is None:
-            return 'hyperbolic'
-
         n = len(self)
 
         # If a mirror configuration can be built in Euclidean space,
@@ -310,8 +293,8 @@ class Graph:
                 dot = 0
                 for k in range(j):
                     dot += mirrorNormals[i][k] * mirrorNormals[j][k]
-                
-                # Defines the next coordinate of the i-th mirror so that 
+
+                # Defines the next coordinate of the i-th mirror so that
                 # the dot product between the i-th and j-th mirror checks out.
                 mirrorNormals[i][j] = (schlafli[i,j] / 2 - dot) / mirrorNormals[j][j]
                 norm += mirrorNormals[i][j] ** 2
@@ -323,18 +306,19 @@ class Graph:
 
             mirrorNormals[i][i] = sqrt(1 - norm)
 
-        # An invalid mirror arrangement must necessarily be hyperbolic.
         if not valid:
-            return 'hyperbolic'
+            return f" is a {n}D hyperbolic polytope."
 
         schlaflian = schlafli.det()
 
         try:
             if schlaflian > 0:
-                return "spherical"
+                curv = "spherical"
             elif schlaflian == 0:
-                return "Euclidean"
+                curv = "Euclidean"
             else:
                 raise Exception("The Schläflian of a valid mirror arrangement must be non-negative.")
         except TypeError as e:
             raise CDError(f"Couldn't determine sign of Schläflian (≈ {schlaflian.evalf()}). The space of the polytope is probably Euclidean.")
+
+        return f" is a {n}D {curv} polytope."
