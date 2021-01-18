@@ -1,36 +1,25 @@
-import discord
-from discord.embeds import Embed
-from discord.ext import commands
+from config import *
 
-import sys
-import logging
-import datetime
+import discord
+from discord.ext import commands
+from discord.embeds import Embed
+
 import traceback
-import os
 from func_timeout import func_timeout, FunctionTimedOut
 
 from requests.exceptions import ReadTimeout
+import os
 
+import src.py.wiki as Wiki
 from src.py.cd import CD
 from src.py.exceptions import CDError, TemplateError
 from src.py.draw import Draw
-from src.py.wiki import Wiki as WikiClass
+from src.py.node import Graph
 import src.py.explanation as explanation
 from mwclient.errors import MwClientError
 
-# Basic constants.
-TOKEN = open("src/txt/TOKEN.txt", "r").read()
-PREFIX = open("src/txt/PREFIX.txt", "r").read().rstrip()
-DEBUG = False
-
-# Users to ping on unexpected error:
-USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
-            # URL                 # Diatom              # Cirro               # Galoomba
-
-# General config.
-Wiki = WikiClass()
+# Configures the bot.
 client = commands.Bot(command_prefix = PREFIX)
-fileCount = 0
 
 # Runs on client ready.
 @client.event
@@ -52,7 +41,7 @@ client.remove_command("help")
 @client.command(pass_context = True)
 async def help(ctx, *args: str) -> None:
     command = ' '.join(args)
-    a_logger.info(f"COMMAND: help {command}")
+    log(ctx, f"COMMAND: help {command}")
 
     # Configures the main help embed.
     if command == '':
@@ -186,7 +175,7 @@ async def help(ctx, *args: str) -> None:
 async def cd(ctx, *args: str) -> None:
     try:
         cd = ' '.join(args)
-        a_logger.info(f"COMMAND: cd {cd}")
+        log(ctx, f"COMMAND: cd {cd}")
 
         if cd == '':
             await ctx.send(f"Usage: `{PREFIX}cd x4o3o`. Run `{PREFIX}help cd` for details.")
@@ -207,11 +196,11 @@ async def cd(ctx, *args: str) -> None:
             fileCount += 1
 
             temp.save(fileName)
-            a_logger.info(f"INFO: Created {fileName} file.")
+            log(ctx, f"INFO: Created {fileName} file.")
             await ctx.send(file = discord.File(fileName))
 
             os.remove(fileName)
-            a_logger.info(f"INFO: Removed {fileName} file.")
+            log(ctx, f"INFO: Removed {fileName} file.")
 
     # Unexpected error.
     except Exception as e:
@@ -221,10 +210,12 @@ async def cd(ctx, *args: str) -> None:
 async def circumradius(ctx, *args: str) -> None:
     try:
         cd = ' '.join(args)
+        log(ctx, f"COMMAND: circumradius {cd}")
+        mode = 'plain'
 
         # Posts circumradius
         try:
-            circ = func_timeout(10, lambda x: CD(x).toGraph().circumradiusFormat(), args = (cd,))
+            circ = func_timeout(10, lambda x: CD(x).toGraph().circumradius(), args = (cd,))
         except CDError as e:
             await error(ctx, str(e), dev = False)
             return
@@ -232,7 +223,7 @@ async def circumradius(ctx, *args: str) -> None:
             await error(ctx, "Calculation timed out after 10s.", dev = False)
             return
 
-        await longSend(ctx, f"**Circumradius**: {circ[0]}\n**Decimal approximation:** {circ[1]}")
+        await longSend(ctx, f"**Circumradius**: {Graph.format(circ, mode)}\n**Decimal approximation:** {Graph.format(circ.evalf(), 'plain')}")
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -242,20 +233,22 @@ async def circumradius(ctx, *args: str) -> None:
 async def space(ctx, *args: str) -> None:
     try:
         cd = ' '.join(args)
-        a_logger.info(f"COMMAND: space {cd}")
+        log(ctx, f"COMMAND: space {cd}")
 
         if cd == '':
             await ctx.send(f"Usage: `{PREFIX}space x4o3o`. Run `{PREFIX}help space` for details.")
         else:
             try:
-                space = func_timeout(10, lambda x: CD(x).toGraph().spaceOf(), args = (cd,))
-                await ctx.send(str(cd) + space)
+                graph = CD(cd).toGraph()
+                space = func_timeout(10, lambda x: graph.spaceOf(), args = (cd,))
+                await ctx.send(f"{cd} is a {graph.dimensions()}D {space} polytope.")
             except CDError as e:
                 await error(ctx, str(e), dev = False)
                 return
             except FunctionTimedOut as e:
                 await error(ctx, "Calculation timed out after 10s.", dev = False)
                 return
+
     # Unexpected error.
     except Exception as e:
         await error(ctx, str(e), dev = True)
@@ -271,7 +264,7 @@ async def wiki(ctx, *args: str) -> None:
             await ctx.send(f"Usage: `{PREFIX}wiki cube`. Run `{PREFIX}help wiki` for details.")
             return
 
-        a_logger.info(f"COMMAND: wiki {title}")
+        log(ctx, f"COMMAND: wiki {title}")
         title = title[0].capitalize() + title[1:]
 
         # Tries to load the page.
@@ -307,7 +300,7 @@ async def wiki(ctx, *args: str) -> None:
 @commands.has_role('Wiki Contributor')
 async def redirect(ctx, *args: str):
     try:
-        a_logger.info(f"COMMAND: redirect {args}")
+        log(ctx, f"COMMAND: redirect {args}")
 
         # Shows command help.
         if len(args) == 0:
@@ -382,7 +375,7 @@ async def redirect(ctx, *args: str):
 async def search(ctx, *args: str) -> None:
     try:
         key = ' '.join(args)
-        a_logger.info(f"COMMAND: search {key}")
+        log(ctx, f"COMMAND: search {key}")
         resultNumber = 0
 
         embed = discord.Embed(
@@ -415,7 +408,7 @@ async def search(ctx, *args: str) -> None:
 @client.command()
 async def get(ctx, *args: str) -> None:
     try:
-        a_logger.info(f"COMMAND: redirect {args}")
+        log(ctx, f"COMMAND: redirect {args}")
 
         # Shows command help.
         if len(args) == 0:
@@ -454,7 +447,7 @@ async def get(ctx, *args: str) -> None:
 async def info(ctx, *args: str) -> None:
     try:
         article = ' '.join(args)
-        a_logger.info(f"COMMAND: info {article}")
+        log(ctx, f"COMMAND: info {article}")
 
         # Shows command help.
         if article == '':
@@ -487,10 +480,10 @@ async def info(ctx, *args: str) -> None:
 # Dev command, shows the client latency.
 @client.command(aliases = [":ping_pong:", "🏓"])
 async def ping(ctx) -> None:
-    a_logger.info(f"COMMAND: ping")
+    log(ctx, f"COMMAND: ping")
 
     latency = round(client.latency * 1000)
-    a_logger.info(f"INFO: Latency {latency}ms.")
+    log(ctx, f"INFO: Latency {latency}ms.")
     await ctx.send(f"Ping: {latency}ms.")
 
 # Changes the bot prefix.
@@ -499,7 +492,7 @@ async def ping(ctx) -> None:
 async def prefix(ctx, *args: str) -> None:
     try:
         newPrefix = ' '.join(args)
-        a_logger.info(f"COMMAND: prefix {newPrefix}")
+        log(ctx, f"COMMAND: prefix {newPrefix}")
 
         global PREFIX
         PREFIX = newPrefix
@@ -515,7 +508,7 @@ async def prefix(ctx, *args: str) -> None:
             )
         )
 
-        a_logger.info(f"INFO: prefix changed to {newPrefix}")
+        log(ctx, f"INFO: prefix changed to {newPrefix}")
         await ctx.send(f"Prefix changed to {PREFIX}")
 
     # Unexpected error.
@@ -530,7 +523,7 @@ async def error(ctx, text: str, dev: bool = False) -> None:
     if dev:
         logMsg = f"UNEXPECTED ERROR: {text}"
         msg = f"```UNEXPECTED ERROR: {text}\n\nPlease report this issue on the GitHub repository.```\n"
-        a_logger.info(f"ERROR:\n{traceback.format_exc()}")
+        log(ctx, f"ERROR:\n{traceback.format_exc()}")
 
         # Pings all devs in case of a dev error.
         if not DEBUG:
@@ -540,7 +533,7 @@ async def error(ctx, text: str, dev: bool = False) -> None:
         logMsg = f"ERROR: {text}"
         msg = f"```ERROR: {text}```"
 
-    a_logger.info(logMsg)
+    log(ctx, logMsg)
     await ctx.send(msg)
 
 # Sends a message, posting it as a text file in case it is too long.
@@ -559,6 +552,9 @@ async def longSend(ctx, text: str):
             await ctx.send("Result too long, posted as a text file:", file = discord.File(fileR, "result.txt"))
             os.remove(f"result{fc}.txt")
 
+def log(ctx, text: str) -> None:
+    a_logger.info(f'<@{ctx.message.author.id}> {text}')
+
 # Creates a help embed for a given command.
 def commandHelpEmbed(command: str, shortExplanation: str, examples: str) -> Embed:
     embed = discord.Embed(
@@ -571,20 +567,10 @@ def commandHelpEmbed(command: str, shortExplanation: str, examples: str) -> Embe
 
     return embed
 
-# Create log folder.
-try:
-    os.mkdir("logs")
-except FileExistsError:
-    pass
-
-# Configures logger.
-a_logger = logging.getLogger()
-a_logger.setLevel(logging.INFO)
-output_file_handler = logging.FileHandler("logs/log " +
-    datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + ".txt", 'w', 'utf-8')
-stdout_handler = logging.StreamHandler(sys.stdout)
-a_logger.addHandler(output_file_handler)
-a_logger.addHandler(stdout_handler)
+# Logs into the wiki.
+a_logger.info("INFO: Logging into the wiki...")
+Wiki.login()
+a_logger.info("INFO: Succesfully logged in.")
 
 # Runs the bot.
 client.run(TOKEN)

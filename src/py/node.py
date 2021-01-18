@@ -1,5 +1,7 @@
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import List, Optional, Match
+
+import re
 
 from src.py.exceptions import CDError
 from sympy import Rational, Expr, Matrix, cos, pi, oo, zoo, sqrt, latex
@@ -167,6 +169,9 @@ class Graph:
     def __len__(self):
         return len(self.array)
 
+    def dimensions(self) -> int:
+        return len(self)
+
     # Gets the connected components of a graph.
     def components(self) -> List[Graph]:
         components: List[Graph] = []
@@ -202,7 +207,7 @@ class Graph:
                 label = Node.labelToNumber(edgeLabels[j])
 
                 if label is None:
-                    raise CDError("Ø not permitted in circumradius computation.")
+                    return None
 
                 assert isinstance(neighbor.arrayIndex, int)
 
@@ -216,7 +221,10 @@ class Graph:
     # (but it will work ok for non-connex graphs).
     def __circumradius(self) -> Expr:
         try:
-            stott = self.schlafli() ** -1
+            schlafli = self.schlafli()
+            if schlafli is None:                
+                raise CDError("Ø not permitted in circumradius computation.")
+            stott = schlafli ** -1
         except NonInvertibleMatrixError:
             return oo
 
@@ -237,20 +245,39 @@ class Graph:
 
         return sqrt(res)
 
-    # Same as circumradius, except that it returns a tuple of messages to post.
-    def circumradiusFormat(self, mode: str = 'plain') -> Tuple[str, str]:
-        circ = self.circumradius()
-        return Graph.format(circ, mode), Graph.format(circ.evalf(), 'plain')
+    __expDictionary = {
+        '0': '⁰', 
+        '1': '¹', 
+        '2': '²', 
+        '3': '³', 
+        '4': '⁴', 
+        '5': '⁵', 
+        '6': '⁶', 
+        '7': '⁷', 
+        '8': '⁸', 
+        '9': '⁹'
+    }
+
+    @staticmethod
+    def parsePowers(match: Match) -> str:
+        matchStr = match.group()
+        print(matchStr)
+        newStr = ''
+        for i in range(len(matchStr) - 2):
+            newStr += Graph.__expDictionary[matchStr[i + 2]]
+        
+        print(newStr)
+        return newStr
 
     @staticmethod
     # Formats a sympy result into something that can be posted on Discord.
     def format(number, mode: str) -> str:
         if mode == 'latex':
             return '$' + latex(number) + '$'
+
         # Maybe print exponents in Unicode?
         elif mode == 'plain':
-            return (str(number)
-                .replace('**', '^')
+            return (re.sub('\*\*[0-9]*', Graph.parsePowers, str(number))
                 .replace('*', '×')
                 .replace('I', 'i')
                 .replace('-', '–')
@@ -262,6 +289,9 @@ class Graph:
     # Gets the rank and curvature of a polytope's CD.
     def spaceOf(self) -> str:
         schlafli = self.schlafli()
+        if schlafli is None:
+            return 'hyperbolic'
+
         n = len(self)
 
         # If a mirror configuration can be built in Euclidean space,
@@ -293,19 +323,18 @@ class Graph:
 
             mirrorNormals[i][i] = sqrt(1 - norm)
 
+        # An invalid mirror arrangement must necessarily be hyperbolic.
         if not valid:
-            return f" is a {n}D hyperbolic polytope."
+            return 'hyperbolic'
 
         schlaflian = schlafli.det()
 
         try:
             if schlaflian > 0:
-                curv = "spherical"
+                return "spherical"
             elif schlaflian == 0:
-                curv = "Euclidean"
+                return "Euclidean"
             else:
                 raise Exception("The Schläflian of a valid mirror arrangement must be non-negative.")
         except TypeError as e:
             raise CDError(f"Couldn't determine sign of Schläflian (≈ {schlaflian.evalf()}). The space of the polytope is probably Euclidean.")
-        
-        return f" is a {n}D {curv} polytope."

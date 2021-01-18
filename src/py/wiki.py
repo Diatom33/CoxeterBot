@@ -1,119 +1,275 @@
 from src.py.exceptions import RedirectCycle, TemplateError
-from src.py import parser
 from mwclient import Site
 from mwclient.page import Page
 from mwclient.errors import AssertUserFailedError
 
 import mwparserfromhell
+from mwparserfromhell.wikicode import Wikicode, Tag, Template, Wikilink
 
-from typing import Dict, Tuple
+from typing import Callable, Dict, List, Tuple, Optional
 
 # A wrapper for mwclient.
-class Wiki:
-    fullURL = "https://polytope.miraheze.org/wiki/"
+username = 'OfficialURL@CoxeterBot'
+userAgent = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
 
-    # Class initializer.
-    def __init__(self) -> None:
-        self.username = 'OfficialURL@CoxeterBot'
-        self.userAgent = 'CoxeterBot (eric.ivan.hdz@gmail.com)'
+URL = 'polytope.miraheze.org'
+fullURL = "https://polytope.miraheze.org/wiki/"
 
-        self.fullURL = Wiki.fullURL
-        self.URL = Wiki.fullURL[8:-5]
+site: Site
 
-        self.site = Site(self.URL, clients_useragent = self.userAgent)
-        self.login()
+# Does not store the password variable, which may either be good for security, or be stupid.
+def login() -> None:
+    global site
+    site = Site(URL, clients_useragent = userAgent)
+    site.login(username, open("src/txt/WIKI_PW.txt", "r").read())
 
-    # Does not store the password variable, which may either be good for security, or be stupid.
-    def login(self) -> None:
-        self.site.login(self.username, open("src/txt/WIKI_PW.txt", "r").read())
+# Gets all fields from a page's Infobox.
+def getFields(page: Page) -> Dict[str, str]:
+    if not page.exists:
+        raise TemplateError(f"The requested page {page.name} does not exist.")
 
-    # Gets all fields from a page's Infobox.
-    def getFields(self, page: Page) -> Dict[str, str]:
-        if not page.exists:
-            raise TemplateError(f"The requested page {page.name} does not exist.")
+    wikicode = mwparserfromhell.parse(page.text())
+    assert isinstance(wikicode, Wikicode)
 
-        wikicode = mwparserfromhell.parse(page.text())
+    for template in wikicode.filter_templates():
+        if template.name.matches("Infobox polytope"):
+            return parse(template.params)
 
-        for template in wikicode.filter_templates():
-            if template.name.matches("Infobox polytope"):
-                return parser.parse(template.params)
+    raise TemplateError("Infobox polytope not found.")
 
-        raise TemplateError("Infobox polytope not found.")
+# Gets a single field from a page's Infobox.
+def getField(page: Page, wikiField: str) -> Tuple[str, str]:
+    if not page.exists:
+        raise TemplateError(f"The requested page {page.name} does not exist.")
 
-    # Gets a single field from a page's Infobox.
-    def getField(self, page: Page, wikiField: str) -> Tuple[str, str]:
-        if not page.exists:
-            raise TemplateError(f"The requested page {page.name} does not exist.")
+    fieldName = getFieldName(wikiField)
 
-        fieldName = parser.getFieldName(wikiField)
+    if fieldName is None:
+        raise TemplateError(f"Field {wikiField} not found.")
+    return fieldName, getFields(page)[fieldName]
 
-        if fieldName is None:
-            raise TemplateError(f"Field {wikiField} not found.")
-        return fieldName, self.getFields(page)[fieldName]
+# Returns a Page object with a given title.
+# If redirect, goes through the whole redirect chain.
+def page(title: str, redirect: bool = False) -> Page:
+    page = Page(site, title)
+    if redirect:
+        page = resolveRedirect(page)
 
-    # Returns a Page object with a given title.
-    # If redirect, goes through the whole redirect chain.
-    def page(self, title: str, redirect: bool = False) -> Page:
-        page = Page(self.site, title)
-        if redirect:
-            page = self.resolveRedirect(page)
+    return page
 
+# Gets the URL of a page.
+def pageToURL(page: Page) -> str:
+    return titleToURL(page.name)
+
+# Gets the URL of a page from its title.
+def titleToURL(title: str) -> str:
+    return fullURL + title.translate({32: '_'})
+
+# Searches all articles with a given word in its title.
+def search(key: str):
+    # Sorts by length first, then alphabetically.
+    def sortFun(x):
+        x = x.get('title')
+        return (len(x), x)
+
+    return sorted(site.search(search = key), key = sortFun)
+
+# From a page, which might exist or not, goes through the entire redirect chain.
+# Fixes any double redirects it comes across.
+# Throws an exception on a cyclic redirect.
+def resolveRedirect(page: Page) -> Page:
+    # If the page doesn't exist, returns itself.
+    if not page.exists:
         return page
 
-    # Gets the URL of a page.
-    def pageURL(self, page: Page) -> str:
-        return self.titleToURL(page.name)
+    redirectList = [] # Each page in the redirect chain.
+    redirectListNames = [] # Each page title in the redirect chain.
+    while page is not None and page.exists:
+        if page.name in redirectListNames:
+            raise RedirectCycle("Redirect cycle found.")
 
-    # Gets the URL of a page from its title.
-    def titleToURL(self, title: str) -> str:
-        return self.fullURL + title.translate({32: '_'})
+        redirectList.append(page)
+        redirectListNames.append(page.name)
 
-    # Searches all articles with a given word in its title.
-    def search(self, key: str):
-        # Sorts by length first, then alphabetically.
-        def sortFun(x):
-            x = x.get('title')
-            return (len(x), x)
+        page = page.redirects_to()
 
-        return sorted(self.site.search(search = key), key = sortFun)
+    if page is None:
+        page = redirectList[-1]
 
-    # From a page, which might exist or not, goes through the entire redirect chain.
-    # Fixes any double redirects it comes across.
-    # Throws an exception on a cyclic redirect.
-    def resolveRedirect(self, page: Page) -> Page:
-        # If the page doesn't exist, returns itself.
-        if not page.exists:
-            return page
+    for link in redirectList[:-2]:
+        redirect(link, redirectList[-1])
 
-        redirectList = [] # Each page in the redirect chain.
-        redirectListNames = [] # Each page title in the redirect chain.
-        while page is not None and page.exists:
-            if page.name in redirectListNames:
-                raise RedirectCycle("Redirect cycle found.")
+    return page
 
-            redirectList.append(page)
-            redirectListNames.append(page.name)
+# Redirects a page to another.
+# Does not perform any checks to see whether the pages exist, etc.
+MAX_TRIES = 3
+def redirect(originPage: Page, targetPage: Page, tries: int = 0) -> None:
+    try:
+        originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
+    except AssertUserFailedError:
+        login()
 
-            page = page.redirects_to()
+        if tries < MAX_TRIES:
+            redirect(originPage, targetPage, tries + 1)
+        else:
+            raise ConnectionRefusedError("Could not connect to the Polytope Wiki.")
 
-        if page is None:
-            page = redirectList[-1]
+def parse(params: List[Wikicode]) -> Dict[str, str]:
+    # A dictionary of parsed parameter names and values.
+    parseFieldList: Dict[str, str] = {}
 
-        for link in redirectList[:-2]:
-            self.redirect(link, redirectList[-1])
+    # For each of the template's parameters:
+    for param in params:
+        name: Wikicode = param.name
+        code: Wikicode = param.value
 
-        return page
+        assert isinstance(name, Wikicode)
+        assert isinstance(code, Wikicode)
 
-    # Redirects a page to another.
-    # Does not perform any checks to see whether the pages exist, etc.
-    MAX_TRIES = 3
-    def redirect(self, originPage: Page, targetPage: Page, tries: int = 0) -> None:
-        try:
-            originPage.edit(f"#REDIRECT [[{targetPage.name}]]", minor = False, bot = True, section = None)
-        except AssertUserFailedError:
-            self.login()
-
-            if tries < Wiki.MAX_TRIES:
-                self.redirect(originPage, targetPage, tries + 1)
+        # Compares the param name to the list of parsers.
+        newName = getFieldName(str(name))
+        if newName is not None:
+            if newName in parsers:
+                newCode = (parsers[newName])(code)
             else:
-                raise ConnectionRefusedError("Could not connect to the Polytope Wiki.")
+                newCode = code
+
+            # Adds the new name and new value to the dictionary.
+            parseFieldList[newName] = stringFormat(newCode)
+
+    # Adds default values for missing fields.
+    return addDefaults(parseFieldList)
+
+# Translates a wiki infobox name to a human-readable field name.
+# We call the former "wiki fields", the latter simply "fields".
+def getFieldName(wikiField: str) -> Optional[str]:
+    wikiField = wikiField.lower().strip()
+
+    if wikiField in fieldTranslator:
+        return fieldTranslator[wikiField]
+    return None
+
+# Applies standard formating to turn a Wikicode object into a string.
+# We should remove italics and bold, but preserve links.
+def stringFormat(code: Wikicode) -> str:
+    # Parses italics and bold.
+    for innerCode in code.filter():
+        if isinstance(innerCode, Tag):
+            if innerCode.wiki_markup == "''":
+                code.replace(innerCode, f"*{innerCode.contents}*")
+            elif innerCode.wiki_markup == "'''":
+                code.replace(innerCode, f"**{innerCode.contents}**")
+            elif innerCode.wiki_markup == '<nowiki>':                
+                code.replace(innerCode, innerCode.contents)
+
+        elif isinstance(innerCode, Template):
+            if innerCode.name.matches("!"):
+                code.replace(innerCode, '|')
+
+        elif isinstance(innerCode, Wikilink):
+            linkPage = page(str(innerCode.title), redirect = True)                          
+            link = ''
+
+            if linkPage.exists:  
+                if innerCode.text is not None:
+                    link += f'({innerCode.text})'                
+                link += f'[{pageToURL(linkPage)}]'
+            else:
+                link = innerCode.text or innerCode.title
+            
+            code.replace(innerCode, link)
+
+    return str(code).strip()
+
+# Cleans up a CD.
+def cd(code: Wikicode) -> Wikicode:
+    # Removes all graphical CDs.
+    for template in code.filter_templates():
+        if template.name.matches(["CDD", "Coxeter-Dynkin Diagram"]):
+            code.remove(template)
+
+    # If the CDs were parenthesized, empty parentheses () will remain, so we remove them.
+    try:
+        code.replace('()', '')
+    # The code throws an error if it doesn't find any matches, but we don't care.
+    except ValueError:
+        pass
+
+    return code
+
+# Cleans up a field by simply adding uppercase.
+def uppercase(code: Wikicode) -> Wikicode:
+    code.name = str(code).title()
+    return code
+
+def addDefaults(fieldList: Dict[str, str]) -> Dict[str, str]:
+    # First removes empty attributes.
+    for name, value in tuple(fieldList.items()):
+        if value == '':
+            del fieldList[name]
+
+    for name, replace in defaults.items():
+        if name not in fieldList:
+            fieldList[name] = replace
+
+    return fieldList
+
+defaults: Dict[str, str] = {
+    'Space': 'Spherical'
+}
+
+fieldTranslator: Dict[str, str] = {
+    'dimension': "Dimensions",
+    'dim': "Dimensions",
+    'dimensions': "Dimensions",
+    'rank': "Dimensions",
+    'type': "Type",
+    'space': "Space",
+    'acronym': "Bowers style acronym",
+    'obsa': "Bowers style acronym",
+    'bsa': "Bowers style acronym",
+    'ubsa': "Bowers style acronym",
+
+    'csymbol': 'Coxeter diagram',
+    'cox': 'Coxeter diagram',
+    'coxeter': 'Coxeter diagram',
+    'cd': 'Coxeter diagram',
+    'cdd': 'Coxeter diagram',
+    'schlafli': 'Schläfli symbol',
+    'schläfli': 'Schläfli symbol',
+    'taper': 'Tapertopic notation',
+    'tapertopic': 'Tapertopic notation',
+    'bracket': 'Bracket notation',
+    'symmetry': 'Symmetry',
+    'army': 'Army',
+    'reg': 'Regiment',
+    'regiment': 'Regiment',
+    'company': 'Company',
+
+    'circumradius': 'Circumradius',
+    'radius': 'Circumradius',
+    'circum': 'Circumradius',
+    'rad': 'Circumradius',
+    'cr': 'Circumradius',
+
+    'pieces': 'Number of pieces',
+    'loc': 'Level of complexity',
+    'convex': 'Convex',
+    'conv': 'Convex',
+    'orientable': 'Orientable',
+    'orient': 'Orientable',
+    'nature': 'Nature',
+    'nat': 'Nature',
+
+    'dual': 'Dual',
+    'conjugate': 'Conjugate',
+    'conj': 'Conjugate'
+}
+
+parsers: Dict[str, Callable[[Wikicode], Wikicode]] = {
+    'Coxeter diagram': cd,
+    'Convex': uppercase,
+    'Orientable': uppercase,
+    'Nature': uppercase
+}

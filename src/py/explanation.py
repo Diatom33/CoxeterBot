@@ -1,4 +1,4 @@
-from src.py.wiki import Wiki
+import src.py.wiki as Wiki
 
 # ID of Wiki Contributor role.
 ROLE_ID = "<@&699404888127569981>"
