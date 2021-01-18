@@ -435,7 +435,13 @@ async def get(ctx, *args: str) -> None:
         if fieldName == 'Coxeter diagram':
             await cd(ctx, value)
         else:
-            await ctx.send(f"**{fieldName}:** {value}")
+            embed = discord.Embed(
+                colour = discord.Colour.blue(),
+                title = f"Polytope info for {page.name}:"
+            )
+
+            embed.add_field(name = fieldName, value = value)
+            await ctx.send(embed = embed)
 
     # Unexpected error.
     except Exception as e:
@@ -446,32 +452,38 @@ async def get(ctx, *args: str) -> None:
 @client.command()
 async def info(ctx, *args: str) -> None:
     try:
-        article = ' '.join(args)
-        log(ctx, f"COMMAND: info {article}")
+        title = ' '.join(args)
+        log(ctx, f"COMMAND: info {title}")
 
         # Shows command help.
-        if article == '':
+        if title == '':
             await ctx.send("Usage: `?info dodecahedron`. Run `?help info` for details.")
             return
 
         # Tries to get the item info.
         try:
-            page = Wiki.page(article, redirect = True)
+            page = Wiki.page(title, redirect = True)
             fieldList = Wiki.getFields(page)
 
         # Title contains non-standard characters.
         except (MwClientError, TemplateError) as e:
             await error(ctx, str(e), dev = False)
             return
+        
+        embed = discord.Embed(
+            colour = discord.Colour.blue(),
+            title = f"Polytope info for {page.name}:"
+        )
 
-        msg = ""
-        for field, value in fieldList.items():
-            msg += f"**{field}:** {value}" + '\n'
+        empty = True
+        for fieldName, value in fieldList.items():
+            embed.add_field(name = fieldName, value = value)    
+            empty = False
 
-        if msg != "":
-            await ctx.send(msg)
-        else:
+        if empty:
             await error(ctx, str("No valid fields found on the infobox."), dev = False)
+        else:
+            await ctx.send(embed = embed)
 
     # Unexpected error.
     except Exception as e:

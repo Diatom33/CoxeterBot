@@ -141,9 +141,9 @@ def parse(params: List[Wikicode]) -> Dict[str, str]:
     parseFieldList: Dict[str, str] = {}
 
     # For each of the template's parameters:
-    for param in params:       
+    for param in params:
         newName, newCode = parseItem(param)
-        
+
         # Adds the new name and new value to the dictionary.
         if newName is not None and newCode is not None:
             parseFieldList[newName] = newCode
@@ -182,7 +182,7 @@ def stringFormat(code: Wikicode) -> str:
             link = innerCode.text or innerCode.title
 
             if linkPage.exists:
-                link = f'({link})[{pageToURL(linkPage)}]'
+                link = f'[{link}]({pageToURL(linkPage)})'
 
             code.replace(innerCode, link)
 
