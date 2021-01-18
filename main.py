@@ -21,7 +21,7 @@ from mwclient.errors import MwClientError
 # Basic constants.
 TOKEN = open("src/txt/TOKEN.txt", "r").read()
 PREFIX = open("src/txt/PREFIX.txt", "r").read().rstrip()
-DEBUG = True
+DEBUG = False
 
 # Users to ping on unexpected error:
 USER_IDS = ("370964201478553600", "581141017823019038", "442713612822380554", "253227815338508289")
