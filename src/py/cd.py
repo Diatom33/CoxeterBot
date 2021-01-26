@@ -129,7 +129,6 @@ class CD:
                         nodeIndex = ord('a') - ord(virtualNode[2]) - 1
                     else:
                         nodeIndex = ord(virtualNode[1]) - ord('a')
-                        nodeIndex = ord(virtualNode[1]) - ord('a')
 
                 # Tries to read the virtual node as a number virtual node.
                 else:
