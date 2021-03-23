@@ -21,7 +21,7 @@ site: Site
 def login() -> None:
     global site
     site = Site(URL, clients_useragent = userAgent)
-    site.login(username, open("src/txt/WIKI_PW.txt", "r").read())
+    site.login(username, open("src/txt/WIKI_PW.txt", "r").read().rstrip())
 
 # Gets all fields from a page's Infobox.
 def getUnparsedFields(page: Page) -> List[Wikicode]:
