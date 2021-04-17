@@ -241,7 +241,7 @@ async def space(ctx, *args: str) -> None:
             try:
                 graph = CD(cd).toGraph()
                 space = func_timeout(10, lambda x: graph.spaceOf(), args = (cd,))
-                await ctx.send(f"{cd} is a {graph.dimensions()}D {space} polytope.")
+                await ctx.send(cd+space)
             except CDError as e:
                 await error(ctx, str(e), dev = False)
                 return
