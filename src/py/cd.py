@@ -25,7 +25,7 @@ class EdgeRef:
         return self.index1
 
 # Various regexes:
-numberRegex = "([1-9][0-9]*)"
+numberRegex = "([0-9]*)"
 fractionRegex = f"({numberRegex}\/{numberRegex})"
 
 # Matches one of the following:
