@@ -51,9 +51,6 @@ class Node:
         if node in self.neighbors:
             raise CDError("Can't link two nodes twice.")
 
-        if label == "1" or label == "1/2":
-            raise CDError(f"Invalid edge label {label}.")
-
         if label != "2":
             self.neighbors.append(node)
             self.edgeLabels.append(label)
