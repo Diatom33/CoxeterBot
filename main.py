@@ -297,7 +297,7 @@ async def wiki(ctx, *args: str) -> None:
 
 # Creates a wiki redirect.
 @client.command()
-@commands.has_role(705839902906122260)
+@commands.has_role(699404888127569981)
 async def redirect(ctx, *args: str):
     try:
         log(ctx, f"COMMAND: redirect {args}")
